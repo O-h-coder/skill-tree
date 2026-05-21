@@ -4,7 +4,7 @@
  */
 
 import { signUp, signIn, resetPassword, getCurrentUser } from "./auth.js";
-import { initSupabase } from "./supabase.js"; // ← ضيف ده
+import { getSupabase, initSupabase } from "./supabase.js";
 import { t } from "./i18n.js";
 
 let isRegisterMode = false;
