@@ -1,0 +1,179 @@
+<!-- File login.html -->
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="appTitle">Skill Tree - تسجيل الدخول</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- FIX: linked the 8 split CSS files instead of missing style.css -->
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+    <link rel="stylesheet" href="css/login.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FIX: removed duplicate <base target="_blank" /> -->
+    <base target="_blank" />
+  </head>
+  <body class="dark-mode rtl">
+    <div class="login-screen">
+      <div class="particles" id="particles"></div>
+      <div class="login-container">
+        <div class="login-logo"><i class="fas fa-tree"></i></div>
+        <h1 class="neon-title">SKILL TREE</h1>
+        <p class="subtitle" data-i18n="appSubtitle">
+          نظام تطوير المهارات | Solo Leveling Style
+        </p>
+
+        <!-- EMAIL FORM -->
+        <form class="login-form" id="emailForm">
+          <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input
+              type="email"
+              id="authEmail"
+              data-i18n-placeholder="email"
+              placeholder="البريد الإلكتروني"
+              required
+              autocomplete="email"
+            />
+          </div>
+          <div class="input-hint" id="emailHint"></div>
+          <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input
+              type="password"
+              id="authEmailPassword"
+              data-i18n-placeholder="password"
+              placeholder="كلمة المرور"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+          <div class="input-hint" id="emailPasswordHint"></div>
+          <button
+            type="submit"
+            class="btn btn-primary btn-glow"
+            id="emailLoginBtn"
+          >
+            <i class="fas fa-play"></i>
+            <span id="emailAuthBtnText" data-i18n="login">تسجيل الدخول</span>
+          </button>
+          <div class="auth-links">
+            <a href="#" id="toggleAuthMode" data-i18n="noAccount"
+              >ليس لديك حساب؟ إنشاء حساب جديد</a
+            >
+            <a href="#" class="forgot-link" id="showForgot"
+              >نسيت كلمة المرور؟</a
+            >
+          </div>
+        </form>
+
+        <!-- FORGOT PASSWORD -->
+        <form class="login-form hidden" id="forgotForm">
+          <h3 style="margin-bottom: 1rem; color: var(--primary)">
+            <i class="fas fa-key"></i>
+            <span data-i18n="recoveryTitle">استعادة الحساب</span>
+          </h3>
+          <p
+            style="
+              font-size: 0.85rem;
+              color: var(--text-muted);
+              margin-bottom: 1rem;
+            "
+            data-i18n="recoveryDesc"
+          >
+            أدخل بريدك الإلكتروني وسيتم إرسال رابط استعادة.
+          </p>
+          <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input
+              type="email"
+              id="recoverEmail"
+              data-i18n-placeholder="email"
+              placeholder="البريد الإلكتروني"
+              required
+            />
+          </div>
+          <!-- FIX: removed duplicate data-i18n-placeholder above -->
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i>
+            <span data-i18n="sendRecovery">إرسال رابط الاستعادة</span>
+          </button>
+          <div class="auth-links">
+            <a href="#" id="backToLogin" data-i18n="backToLogin"
+              >العودة لتسجيل الدخول</a
+            >
+          </div>
+        </form>
+
+        <!-- USERNAME SETUP -->
+        <div class="login-form hidden" id="usernameSetupPanel">
+          <h3 style="margin-bottom: 1rem; color: var(--primary)">
+            <i class="fas fa-user-tag"></i>
+            <span data-i18n="chooseUsername">اختر اسم المستخدم</span>
+          </h3>
+          <p
+            style="
+              font-size: 0.85rem;
+              color: var(--text-muted);
+              margin-bottom: 1rem;
+            "
+            data-i18n="usernameDesc"
+          >
+            اختر اسم مستخدم فريد لحسابك. هذا الاسم سيظهر للآخرين.
+          </p>
+          <div class="input-group">
+            <i class="fas fa-user"></i>
+            <input
+              type="text"
+              id="setupUsername"
+              data-i18n-placeholder="username"
+              placeholder="اسم المستخدم"
+              minlength="3"
+              required
+            />
+          </div>
+          <div class="input-hint" id="setupUsernameHint"></div>
+          <button type="button" class="btn btn-primary" id="btnContinue">
+            <i class="fas fa-check"></i>
+            <span data-i18n="continue">متابعة</span>
+          </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="auth-error" class="auth-message error hidden"></div>
+        <div id="auth-success" class="auth-message success hidden"></div>
+        <div id="loading-overlay" class="loading-overlay hidden">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loginLoadingScreen">
+      <div class="loading-screen-content">
+        <i class="fas fa-tree loading-logo"></i>
+        <div class="loading-spinner-ring"></div>
+        <p class="loading-text" data-i18n="loadingVerify">جاري التحقق...</p>
+      </div>
+    </div>
+
+    <script type="module" src="js/login.js"></script>
+  </body>
+</html>
