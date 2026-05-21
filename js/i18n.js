@@ -1,10 +1,10 @@
+// File: js/i18n.js
 /**
  * i18n.js — محرك الترجمة الكامل
  */
 
 const dictionary = {
   ar: {
-    // ===== APP =====
     appTitle: "Skill Tree - نظام تطوير المهارات",
     appSubtitle: "نظام تطوير المهارات | Solo Leveling Style",
     loading: "جاري التحميل...",
@@ -12,16 +12,12 @@ const dictionary = {
     loadingSkills: "جاري تحميل المهارات...",
     loadingQuests: "جاري تحميل المهام...",
     loadingVerify: "جاري التحقق...",
-
-    // ===== NAVIGATION =====
     skillTree: "شجرة المهارات",
     dailyQuests: "المهام اليومية",
     friends: "الأصدقاء",
     profile: "الملف الشخصي",
     settings: "الإعدادات",
     logout: "خروج",
-
-    // ===== LOGIN =====
     loginTitle: "تسجيل الدخول",
     login: "تسجيل الدخول",
     register: "إنشاء حساب",
@@ -37,8 +33,6 @@ const dictionary = {
     registerSuccess: "تم إنشاء الحساب! تحقق من بريدك الإلكتروني.",
     loginSuccess: "تم تسجيل الدخول!",
     logoutSuccess: "تم تسجيل الخروج",
-
-    // ===== USERNAME =====
     chooseUsername: "اختر اسم المستخدم",
     username: "اسم المستخدم",
     usernameDesc: "هذا الاسم سيظهر للآخرين وفي الترتيب",
@@ -47,15 +41,11 @@ const dictionary = {
     usernameRequired: "اسم المستخدم مطلوب",
     saveContinue: "حفظ والاستمرار",
     continue: "متابعة",
-
-    // ===== RECOVERY =====
     recoveryTitle: "استعادة الحساب",
     recoveryDesc: "أدخل بريدك الإلكتروني وسيتم إرسال رابط استعادة.",
     sendRecovery: "إرسال رابط الاستعادة",
     recoverSent: "تم إرسال رابط الاستعادة",
     backToLogin: "العودة لتسجيل الدخول",
-
-    // ===== SKILL TREE =====
     skillsEmptyTitle: "شجرتك فارغة",
     skillsEmptyDesc: "ابدأ بإضافة مهارات جديدة من صفحة البروفايل",
     skillsUnlocked: "المهارات المفتوحة",
@@ -68,8 +58,6 @@ const dictionary = {
     unlock: "فتح",
     needXP: "تحتاج {{xp}} XP",
     skillNameRequired: "اسم المهارة مطلوب",
-
-    // ===== QUESTS =====
     questsEmptyTitle: "لا توجد مهام",
     questsEmptyDesc: "أضف مهام يومية من صفحة البروفايل",
     questsCompleted: "مهام مكتملة",
@@ -80,8 +68,6 @@ const dictionary = {
     noQuests: "لا توجد مهام",
     noSkills: "لا توجد مهارات",
     questNameRequired: "اسم المهمة مطلوب",
-
-    // ===== FRIENDS =====
     friendsDesc: "قائمة أصدقائك، الترتيب، وإدارة طلبات الصداقة.",
     searchFriend: "ابحث عن صديق",
     searchUser: "اكتب اسم المستخدم بالظبط",
@@ -106,8 +92,6 @@ const dictionary = {
     cannotAddSelf: "لا يمكن إضافة نفسك",
     userNotFound: "المستخدم غير موجود",
     enterUsernameFirst: "اكتب اسم المستخدم أولاً",
-
-    // ===== PROFILE =====
     stats: "الإحصائيات",
     personalSkills: "المهارات الشخصية",
     dailyTasks: "المهام اليومية",
@@ -124,8 +108,6 @@ const dictionary = {
     create: "إنشاء",
     avatarUpdated: "تم تحديث الصورة",
     failedLoadProfile: "فشل تحميل البروفايل",
-
-    // ===== SETTINGS =====
     settingsDesc: "تخصيص تجربتك في Skill Tree.",
     theme: "المظهر",
     darkMode: "الوضع الداكن",
@@ -145,8 +127,6 @@ const dictionary = {
     comingSoon: "قريباً",
     contactSupport: "يرجى التواصل مع الدعم",
     themeSaved: "تم تطبيق المظهر: {{theme}}",
-
-    // ===== XP / LEVEL =====
     rank: "الرتبة",
     level: "المستوى",
     xp: "XP",
@@ -157,8 +137,6 @@ const dictionary = {
     close: "إغلاق",
     save: "حفظ",
     saved: "تم الحفظ",
-
-    // ===== ERRORS =====
     error: "خطأ",
     success: "نجاح",
     info: "معلومة",
@@ -179,8 +157,6 @@ const dictionary = {
     failedRemoveFriend: "فشل إزالة الصديق",
     failedSaveUsername: "فشل حفظ الاسم",
     failedLoadHistory: "تعذر تحميل السجل",
-
-    // ===== THEMES =====
     neonBlue: "نيون أزرق",
     neonPurple: "نيون بنفسجي",
     neonGreen: "نيون أخضر",
@@ -189,7 +165,6 @@ const dictionary = {
     cyberPink: "سايبر وردي",
   },
   en: {
-    // ===== APP =====
     appTitle: "Skill Tree - Skill Development System",
     appSubtitle: "Skill Development System | Solo Leveling Style",
     loading: "Loading...",
@@ -197,16 +172,12 @@ const dictionary = {
     loadingSkills: "Loading skills...",
     loadingQuests: "Loading quests...",
     loadingVerify: "Verifying...",
-
-    // ===== NAVIGATION =====
     skillTree: "Skill Tree",
     dailyQuests: "Daily Quests",
     friends: "Friends",
     profile: "Profile",
     settings: "Settings",
     logout: "Logout",
-
-    // ===== LOGIN =====
     loginTitle: "Login",
     login: "Login",
     register: "Register",
@@ -222,8 +193,6 @@ const dictionary = {
     registerSuccess: "Account created! Please check your email.",
     loginSuccess: "Login successful!",
     logoutSuccess: "Logged out successfully",
-
-    // ===== USERNAME =====
     chooseUsername: "Choose Username",
     username: "Username",
     usernameDesc: "This name will be visible to others and on the leaderboard",
@@ -232,15 +201,11 @@ const dictionary = {
     usernameRequired: "Username is required",
     saveContinue: "Save & Continue",
     continue: "Continue",
-
-    // ===== RECOVERY =====
     recoveryTitle: "Account Recovery",
     recoveryDesc: "Enter your email and a recovery link will be sent.",
     sendRecovery: "Send Recovery Link",
     recoverSent: "Recovery link sent",
     backToLogin: "Back to Login",
-
-    // ===== SKILL TREE =====
     skillsEmptyTitle: "Your tree is empty",
     skillsEmptyDesc: "Start by adding new skills from the Profile page",
     skillsUnlocked: "Skills Unlocked",
@@ -253,8 +218,6 @@ const dictionary = {
     unlock: "Unlock",
     needXP: "Need {{xp}} XP",
     skillNameRequired: "Skill name is required",
-
-    // ===== QUESTS =====
     questsEmptyTitle: "No quests yet",
     questsEmptyDesc: "Add daily quests from the Profile page",
     questsCompleted: "Quests Completed",
@@ -265,8 +228,6 @@ const dictionary = {
     noQuests: "No quests",
     noSkills: "No skills",
     questNameRequired: "Quest name is required",
-
-    // ===== FRIENDS =====
     friendsDesc:
       "Your friends list, leaderboard, and friend request management.",
     searchFriend: "Search for a friend",
@@ -292,8 +253,6 @@ const dictionary = {
     cannotAddSelf: "Cannot add yourself",
     userNotFound: "User not found",
     enterUsernameFirst: "Enter username first",
-
-    // ===== PROFILE =====
     stats: "Statistics",
     personalSkills: "Personal Skills",
     dailyTasks: "Daily Tasks",
@@ -310,8 +269,6 @@ const dictionary = {
     create: "Create",
     avatarUpdated: "Avatar updated",
     failedLoadProfile: "Failed to load profile",
-
-    // ===== SETTINGS =====
     settingsDesc: "Customize your Skill Tree experience.",
     theme: "Theme",
     darkMode: "Dark Mode",
@@ -331,8 +288,6 @@ const dictionary = {
     comingSoon: "Coming soon",
     contactSupport: "Please contact support",
     themeSaved: "Theme applied: {{theme}}",
-
-    // ===== XP / LEVEL =====
     rank: "Rank",
     level: "Level",
     xp: "XP",
@@ -343,8 +298,6 @@ const dictionary = {
     close: "Close",
     save: "Save",
     saved: "Saved",
-
-    // ===== ERRORS =====
     error: "Error",
     success: "Success",
     info: "Info",
@@ -365,8 +318,6 @@ const dictionary = {
     failedRemoveFriend: "Failed to remove friend",
     failedSaveUsername: "Failed to save username",
     failedLoadHistory: "Failed to load history",
-
-    // ===== THEMES =====
     neonBlue: "Neon Blue",
     neonPurple: "Neon Purple",
     neonGreen: "Neon Green",
@@ -391,6 +342,8 @@ export function setLanguage(lang) {
   currentLang = lang;
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.body?.classList.toggle("rtl", lang === "ar");
+  document.body?.classList.toggle("ltr", lang === "en");
   renderTranslations();
   window.dispatchEvent(new CustomEvent("languagechange", { detail: { lang } }));
 }
@@ -400,29 +353,24 @@ export function getCurrentLanguage() {
 }
 
 export function renderTranslations() {
-  // Update page title
   document.title = t("appTitle");
 
-  // Update all elements with data-i18n
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (key) el.textContent = t(key);
   });
 
-  // Update all placeholders
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
     const key = el.getAttribute("data-i18n-placeholder");
     if (key) el.placeholder = t(key);
   });
 
-  // Update all elements with data-i18n-html (for innerHTML)
   document.querySelectorAll("[data-i18n-html]").forEach((el) => {
     const key = el.getAttribute("data-i18n-html");
     if (key) el.innerHTML = t(key);
   });
 }
 
-// Auto-render on load
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", renderTranslations);
 } else {

@@ -1,7 +1,5 @@
 /**
  * css/components.css — المكونات القابلة لإعادة الاستخدام
- * 
- * Contains: Buttons, cards, forms, modals, toasts, badges, inputs
  */
 
 /* ===== BUTTONS ===== */
@@ -21,54 +19,66 @@
   position: relative;
   overflow: hidden;
 }
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   color: #fff;
   box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
 }
+
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(0, 212, 255, 0.5);
 }
+
 .btn-glow {
   animation: pulse-glow 3s infinite;
 }
+
 .btn-secondary {
   background: var(--surface-hover);
   color: var(--text);
   border: 1px solid var(--border);
 }
+
 .btn-secondary:hover:not(:disabled) {
   background: var(--border);
   border-color: var(--primary);
 }
+
 .btn-secondary.active {
   border-color: var(--primary);
   background: rgba(0, 212, 255, 0.1);
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
 }
+
 .btn-danger {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
 .btn-danger:hover:not(:disabled) {
   background: var(--danger);
   color: #fff;
 }
+
 .btn-sm {
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
 }
+
 .btn-success {
   background: rgba(16, 185, 129, 0.15);
   color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
+
 .btn-success:hover:not(:disabled) {
   background: var(--success);
   color: #fff;
@@ -85,9 +95,11 @@
     transform 0.2s,
     box-shadow 0.2s;
 }
+
 .card:hover {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
+
 .card-title {
   font-size: 1.1rem;
   font-weight: 700;
@@ -97,6 +109,7 @@
   gap: 0.5rem;
   color: var(--primary);
 }
+
 .danger-zone {
   border-color: rgba(239, 68, 68, 0.3);
   background: rgba(239, 68, 68, 0.05);
@@ -108,18 +121,22 @@
   display: flex;
   align-items: center;
 }
+
 .input-group i {
   position: absolute;
   color: var(--text-muted);
   font-size: 0.9rem;
   pointer-events: none;
 }
+
 body.rtl .input-group i {
   right: 1rem;
 }
+
 body.ltr .input-group i {
   left: 1rem;
 }
+
 .input-group input,
 .input-group select {
   width: 100%;
@@ -135,31 +152,37 @@ body.ltr .input-group i {
     box-shadow 0.2s;
   outline: none;
 }
+
 body.rtl .input-group input,
 body.rtl .input-group select {
   padding-right: 2.5rem;
   padding-left: 1rem;
 }
+
 body.ltr .input-group input,
 body.ltr .input-group select {
   padding-left: 2.5rem;
   padding-right: 1rem;
 }
+
 .input-group input:focus,
 .input-group select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
 }
+
 .input-group input::placeholder {
   color: var(--text-muted);
   opacity: 0.7;
 }
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
 }
+
 .auth-links {
   display: flex;
   flex-direction: column;
@@ -167,18 +190,22 @@ body.ltr .input-group select {
   margin-top: 1rem;
   font-size: 0.85rem;
 }
+
 .auth-links a {
   color: var(--primary);
   text-decoration: none;
   transition: color 0.2s;
 }
+
 .auth-links a:hover {
   text-decoration: underline;
 }
+
 .forgot-link {
   color: var(--text-muted) !important;
   font-size: 0.8rem;
 }
+
 .forgot-link:hover {
   color: var(--danger) !important;
 }
@@ -197,10 +224,12 @@ body.ltr .input-group select {
   pointer-events: none;
   transition: opacity 0.3s;
 }
+
 .modal-overlay.active {
   opacity: 1;
   pointer-events: all;
 }
+
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -213,9 +242,11 @@ body.ltr .input-group select {
   transform: scale(0.9);
   transition: transform 0.3s;
 }
+
 .modal-overlay.active .modal {
   transform: scale(1);
 }
+
 .modal-icon {
   width: 60px;
   height: 60px;
@@ -229,11 +260,13 @@ body.ltr .input-group select {
   margin: 0 auto 1rem;
   box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
 }
+
 .modal h3 {
   font-size: 1.3rem;
   margin-bottom: 0.5rem;
   color: var(--primary);
 }
+
 .modal p {
   color: var(--text-muted);
   margin-bottom: 1.5rem;
@@ -250,10 +283,12 @@ body.ltr .input-group select {
   gap: 0.5rem;
   max-width: 350px;
 }
+
 body.rtl .toast-container {
   left: auto;
   right: 1.5rem;
 }
+
 .toast {
   display: flex;
   align-items: center;
@@ -269,25 +304,31 @@ body.rtl .toast-container {
   font-size: 0.9rem;
   font-weight: 600;
 }
+
 body.rtl .toast {
   transform: translateX(120%);
 }
+
 .toast.show {
   transform: translateX(0);
   opacity: 1;
 }
+
 .toast.success {
   border-color: var(--success);
   background: linear-gradient(90deg, rgba(16, 185, 129, 0.1), var(--surface));
 }
+
 .toast.error {
   border-color: var(--danger);
   background: linear-gradient(90deg, rgba(239, 68, 68, 0.1), var(--surface));
 }
+
 .toast.warning {
   border-color: var(--warning);
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.1), var(--surface));
 }
+
 .toast.info {
   border-color: var(--info);
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), var(--surface));
@@ -303,15 +344,18 @@ body.rtl .toast {
   font-weight: 700;
   gap: 0.3rem;
 }
+
 .badge-primary {
   background: var(--primary);
   color: #000;
 }
+
 .badge-secondary {
   background: var(--surface-hover);
   color: var(--text);
   border: 1px solid var(--border);
 }
+
 .badge-success {
   background: rgba(16, 185, 129, 0.15);
   color: var(--success);
@@ -330,9 +374,11 @@ body.rtl .toast {
   z-index: 10;
   border-radius: var(--radius);
 }
+
 .loading-overlay.hidden {
   display: none;
 }
+
 .spinner {
   width: 40px;
   height: 40px;
@@ -351,16 +397,19 @@ body.rtl .toast {
   margin-top: 0.5rem;
   text-align: center;
 }
+
 .auth-message.error {
   background: rgba(239, 68, 68, 0.12);
   color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
 .auth-message.success {
   background: rgba(16, 185, 129, 0.12);
   color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
+
 .auth-message.hidden {
   display: none;
 }
@@ -373,15 +422,19 @@ body.rtl .toast {
   padding: 0 0.5rem;
   transition: all 0.2s;
 }
+
 body.ltr .input-hint {
   text-align: left;
 }
+
 .input-hint.error {
   color: var(--danger);
 }
+
 .input-hint.success {
   color: var(--success);
 }
+
 .input-hint.warning {
   color: var(--warning);
 }

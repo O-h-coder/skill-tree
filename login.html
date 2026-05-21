@@ -1,4 +1,4 @@
-<!-- File login.html -->
+<!-- File: login.html -->
 <!doctype html>
 <html lang="ar" dir="rtl">
   <head>
@@ -15,16 +15,16 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- FIX: linked the 8 split CSS files instead of missing style.css -->
-    <link rel="stylesheet" href="css/css_base.css" />
-    <link rel="stylesheet" href="css/css_components.css" />
-    <link rel="stylesheet" href="css/css_layout.css" />
-    <link rel="stylesheet" href="css/css_pages.css" />
-    <link rel="stylesheet" href="css/css_login.css" />
-    <link rel="stylesheet" href="css/css_animations.css" />
-    <link rel="stylesheet" href="css/css_utilities.css" />
-    <link rel="stylesheet" href="css/css_responsive.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+    <link rel="stylesheet" href="css/login.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <base target="_blank" />
   </head>
   <body class="dark-mode rtl">
     <div class="login-screen">
@@ -106,7 +106,6 @@
               required
             />
           </div>
-          <!-- FIX: removed duplicate data-i18n-placeholder above -->
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-paper-plane"></i>
             <span data-i18n="sendRecovery">إرسال رابط الاستعادة</span>

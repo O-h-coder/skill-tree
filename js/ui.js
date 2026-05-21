@@ -1,4 +1,4 @@
-// File js/ui.js
+// File: js/ui.js
 /**
  * ui.js — واجهة المستخدم والتنقل
  */
@@ -16,7 +16,7 @@ export function showToast(message, type = "info", duration = 3000) {
   const container = document.getElementById("toastContainer");
   if (!container) return;
   const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
+  toast.className = `toast ${type}`;
   const icon =
     type === "success"
       ? "fa-check-circle"
@@ -159,7 +159,7 @@ export function populateThemeDropdown(themes, currentTheme, onSelect) {
 }
 
 export function setupGlobalEventListeners() {
-  // FIX: unified click handler for actions and pages
+  // Unified click handler for actions and pages
   document.addEventListener("click", (e) => {
     const target = e.target.closest("[data-action], [data-page]");
     if (!target) return;
@@ -189,7 +189,7 @@ export function setupGlobalEventListeners() {
     }
   });
 
-  // FIX: listen for change events on file inputs (avatar upload)
+  // Listen for change events on file inputs (avatar upload)
   document.addEventListener("change", (e) => {
     const target = e.target.closest("[data-action]");
     if (!target) return;

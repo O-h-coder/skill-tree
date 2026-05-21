@@ -1,8 +1,5 @@
 /**
  * css/login.css — تنسيقات صفحة تسجيل الدخول
- * 
- * Contains: Login screen, particles, login form, login-specific styles
- * Used by: login.html only
  */
 
 /* ===== LOADING SCREEN ===== */
@@ -17,21 +14,25 @@
   flex-direction: column;
   gap: 1.5rem;
 }
+
 .loading-screen.active {
   display: flex;
   animation: fade-in 0.3s ease-out;
 }
+
 .loading-screen-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.2rem;
 }
+
 .loading-logo {
   font-size: 3rem;
   color: var(--primary);
   animation: pulse-glow 2s infinite;
 }
+
 .loading-spinner-ring {
   width: 40px;
   height: 40px;
@@ -40,11 +41,13 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 .loading-text {
   color: var(--text-muted);
   font-size: 0.95rem;
   font-weight: 600;
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

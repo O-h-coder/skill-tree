@@ -1,4 +1,4 @@
-// File js/supabase.js
+// File: js/supabase.js
 /**
  * supabase.js — تهيئة عميل Supabase
  */
@@ -44,7 +44,6 @@ export async function initSupabase() {
         detectSessionInUrl: true,
       },
     });
-    window._stSupabase = _sb;
     return _sb;
   } catch (e) {
     console.error("Supabase init error:", e);
@@ -52,20 +51,7 @@ export async function initSupabase() {
   }
 }
 
-// FIX: removed automatic initSupabase() call
-
 export function getSupabase() {
   if (!_sb) return initSupabase();
   return Promise.resolve(_sb);
 }
-
-export const supabase = new Proxy(
-  {},
-  {
-    get(_, prop) {
-      const sb = getSupabase();
-      if (!sb) throw new Error("Supabase not initialized");
-      return sb[prop];
-    },
-  },
-);

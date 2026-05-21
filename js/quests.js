@@ -1,4 +1,4 @@
-// File js/quests.js
+// File: js/quests.js
 /**
  * quests.js — إدارة المهام اليومية + UI
  */
@@ -110,7 +110,6 @@ export async function deleteQuest(questId) {
   }
 }
 
-// FIX: reset only DAILY quests (is_daily=true). Custom quests (is_daily=false) are NOT touched.
 export async function resetDailyQuests() {
   const userId = getCurrentUserId();
   if (!userId) return { error: "Not authenticated" };
@@ -205,11 +204,9 @@ export async function renderDailyQuestsPage() {
   }
 
   let html = '<div class="quests-grid">';
-
   quests.forEach((quest) => {
     html += renderQuestCard(quest);
   });
-
   html += "</div>";
   container.innerHTML = html;
 

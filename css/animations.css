@@ -1,7 +1,5 @@
 /**
  * css/animations.css — الحركات والأنيميشنز
- * 
- * Contains: All @keyframes animations used across the app
  */
 
 @keyframes float {
@@ -13,6 +11,7 @@
     transform: translateY(-10px);
   }
 }
+
 @keyframes pulse-glow {
   0%,
   100% {
@@ -26,6 +25,7 @@
       0 0 40px var(--primary);
   }
 }
+
 @keyframes shine {
   0% {
     transform: translateX(-100%);
@@ -34,6 +34,7 @@
     transform: translateX(100%);
   }
 }
+
 @keyframes particle-rise {
   0% {
     transform: translateY(100vh) scale(0);
@@ -47,6 +48,7 @@
     opacity: 0;
   }
 }
+
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -57,6 +59,7 @@
     transform: translateY(0);
   }
 }
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -65,11 +68,13 @@
     opacity: 1;
   }
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+
 @keyframes scale-in {
   from {
     opacity: 0;
@@ -80,6 +85,7 @@
     transform: scale(1);
   }
 }
+
 @keyframes card-enter {
   from {
     opacity: 0;

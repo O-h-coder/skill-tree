@@ -1,4 +1,4 @@
-// File js/skills.js
+// File: js/skills.js
 /**
  * skills.js — إدارة المهارات + UI شجرة المهارات
  */
@@ -196,11 +196,9 @@ export async function renderSkillTreePage() {
   unlocked.forEach((skill) => {
     html += renderSkillNode(skill, "unlocked");
   });
-
   available.forEach((skill) => {
     html += renderSkillNode(skill, "available");
   });
-
   locked.forEach((skill) => {
     html += renderSkillNode(skill, "locked");
   });

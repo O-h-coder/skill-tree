@@ -1,15 +1,15 @@
 /**
  * css/utilities.css — الأدوات المساعدة
- * 
- * Contains: Utility classes, glow effects, text helpers
  */
 
 .text-glow {
   text-shadow: 0 0 10px var(--primary);
 }
+
 .orbitron {
   font-family: var(--font-display);
 }
+
 .hidden {
   display: none !important;
 }

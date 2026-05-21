@@ -1,11 +1,7 @@
 /**
  * css/base.css — المتغيرات والأساسيات
- * 
- * Contains: CSS custom properties (variables), base reset,
- *          body styles, scrollbar styling, selection colors
  */
 
-/* ===== CSS VARIABLES ===== */
 :root {
   --bg: #0b0c15;
   --surface: #161822;
@@ -51,15 +47,16 @@
     0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
 }
 
-/* ===== BASE ===== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
+
 html {
   scroll-behavior: smooth;
 }
+
 body {
   font-family: var(--font-main);
   background: var(--bg);
@@ -70,26 +67,33 @@ body {
     color 0.3s;
   overflow-x: hidden;
 }
+
 body.rtl {
   direction: rtl;
 }
+
 body.ltr {
   direction: ltr;
 }
+
 ::selection {
   background: var(--primary);
   color: #000;
 }
+
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }

@@ -1,4 +1,4 @@
-// File friends.js
+// File: js/friends.js
 /**
  * friends.js — نظام الأصدقاء
  */

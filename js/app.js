@@ -1,4 +1,4 @@
-// File js/app.js
+// File: js/app.js
 /**
  * app.js — المحرك الرئيسي للتطبيق
  */
@@ -52,7 +52,7 @@ import {
   populateThemeDropdown,
   setupGlobalEventListeners,
 } from "./ui.js";
-import { initSupabase } from "./supabase.js"; // ← FIX: استورد initSupabase
+import { initSupabase } from "./supabase.js";
 
 let isInitialized = false;
 
@@ -61,7 +61,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (isInitialized) return;
   isInitialized = true;
 
-  // FIX: init Supabase once and wait for it
   const sb = await initSupabase();
   if (!sb) {
     console.error("Failed to initialize Supabase");
@@ -105,7 +104,7 @@ async function initApp(user) {
     if (data?.language) setLanguage(data.language);
     else renderTranslations();
 
-    // FIX: apply saved theme colors immediately
+    // Apply saved theme colors immediately
     if (data?.theme && THEMES[data.theme]) {
       const theme = THEMES[data.theme];
       document.documentElement.style.setProperty("--primary", theme.primary);
@@ -127,7 +126,7 @@ async function initApp(user) {
     navigateTo("skillTree");
     populateThemeDropdown(THEMES, data?.theme || "neonBlue", handleThemeChange);
 
-    // FIX: bind avatar input change directly so file picker works
+    // Bind avatar input change directly so file picker works
     const avatarInput = document.getElementById("avatarInput");
     if (avatarInput) {
       avatarInput.addEventListener("change", async (e) => {
@@ -432,7 +431,6 @@ async function handleLogout() {
   }
 }
 
-// FIX: save selected theme to DB and apply CSS variables
 async function handleThemeChange(themeKey) {
   const theme = THEMES[themeKey];
   if (!theme) return;

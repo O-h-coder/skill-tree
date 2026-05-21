@@ -1,4 +1,4 @@
-// File js/user.js
+// File: js/user.js
 /**
  * user.js — إدارة بيانات المستخدم
  */
@@ -135,7 +135,6 @@ export async function addXP(amount, reason = "") {
   return { leveledUp, newLevel, newExp, newMaxExp, newTitle, error: null };
 }
 
-// FIX: return title based on current language instead of hardcoded Arabic
 export function getTitleByLevel(level) {
   const levels = Object.keys(APP_CONSTANTS.TITLES)
     .map(Number)
@@ -296,15 +295,19 @@ export async function resetUserSettings() {
 export function getCachedUserData() {
   return userData;
 }
+
 export function getUserLevel() {
   return userData?.level || 1;
 }
+
 export function getUserXP() {
   return { current: userData?.exp || 0, max: userData?.max_exp || 100 };
 }
+
 export function getUserStreak() {
   return userData?.stats?.streak || 0;
 }
+
 export function getUserTitle() {
   return userData?.title || getTitleByLevel(getUserLevel());
 }

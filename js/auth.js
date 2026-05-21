@@ -1,4 +1,4 @@
-// File js/auth.js
+// File: js/auth.js
 /**
  * auth.js — المصادقة والجلسات
  */
@@ -45,10 +45,7 @@ export async function signUp(email, password, displayName) {
 
 export async function signIn(email, password) {
   const sb = await getSupabase();
-  const { data, error } = await sb.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return { user: null, error: error.message };
   currentUser = data?.user || null;
   return { user: currentUser, error: null };
