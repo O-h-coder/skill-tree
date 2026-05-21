@@ -52,6 +52,7 @@ import {
   populateThemeDropdown,
   setupGlobalEventListeners,
 } from "./ui.js";
+import { initSupabase } from "./supabase.js"; // ← FIX: استورد initSupabase
 
 let isInitialized = false;
 
