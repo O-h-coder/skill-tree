@@ -12,6 +12,58 @@ import {
 } from "./user.js";
 import { t, setLanguage as i18nSetLanguage } from "./i18n.js";
 
+// ===== BROWSER NOTIFICATIONS =====
+let notificationPermission = false;
+
+export async function requestNotificationPermission() {
+  if (!("Notification" in window)) return false;
+  if (Notification.permission === "granted") {
+    notificationPermission = true;
+    return true;
+  }
+  const permission = await Notification.requestPermission();
+  notificationPermission = permission === "granted";
+  return notificationPermission;
+}
+
+export function sendBrowserNotification(title, body, icon = "/favicon.ico") {
+  if (!notificationPermission || Notification.permission !== "granted") return;
+
+  try {
+    new Notification(title, {
+      body,
+      icon,
+      badge: icon,
+      tag: "skill-tree-" + Date.now(),
+      requireInteraction: false,
+    });
+  } catch (e) {
+    console.error("Notification error:", e);
+  }
+}
+
+export function notify(action, details = "") {
+  // Always show toast
+  const messages = {
+    skillUnlocked: { msg: "Skill unlocked!", type: "success" },
+    questCompleted: { msg: "Quest completed!", type: "success" },
+    friendRequestSent: { msg: "Friend request sent", type: "info" },
+    friendRequestAccepted: { msg: "Friend request accepted", type: "success" },
+    avatarUpdated: { msg: "Avatar updated", type: "success" },
+    settingsSaved: { msg: "Settings saved", type: "success" },
+    levelUp: { msg: "Level up!", type: "success" },
+  };
+
+  const notification = messages[action] || { msg: action, type: "info" };
+  showToast(
+    notification.msg + (details ? " " + details : ""),
+    notification.type,
+  );
+
+  // Send browser notification too
+  sendBrowserNotification("Skill Tree", notification.msg);
+}
+
 export function showToast(message, type = "info", duration = 3000) {
   const container = document.getElementById("toastContainer");
   if (!container) return;

@@ -268,14 +268,34 @@ export function renderQuestsList(containerId, quests) {
   list.innerHTML = quests
     .map(
       (quest) => `
-    <div class="quest-list-item ${quest.completed ? "completed" : ""}">
+    <div class="quest-list-item ${quest.completed ? "completed" : ""}" data-quest-id="${quest.id}">
       <span class="quest-check-sm ${quest.completed ? "checked" : ""}"><i class="fas ${quest.completed ? "fa-check" : "fa-circle"}"></i></span>
       <div class="quest-info"><strong>${escapeHtml(quest.name)}</strong><small>${escapeHtml(quest.description || "")}</small></div>
-      <span class="quest-xp-sm">+${quest.xp_reward} XP</span>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger btn-delete-quest" data-quest-id="${quest.id}" title="Delete"><i class="fas fa-trash"></i></button>
+      </div>
     </div>
   `,
     )
     .join("");
+
+  // Bind delete events
+  list.querySelectorAll(".btn-delete-quest").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(t("deleteConfirm") || "Delete this quest?")) return;
+      const { error } = await deleteQuest(btn.dataset.questId);
+      if (error) {
+        showToast(error, "error");
+      } else {
+        showToast(t("questDeleted") || "Quest deleted", "success");
+        // Refresh lists
+        const { quests: freshQuests } = await fetchDailyQuests();
+        renderQuestsList(containerId, freshQuests);
+        await renderDailyQuestsPage();
+      }
+    });
+  });
 }
 
 function escapeHtml(text) {

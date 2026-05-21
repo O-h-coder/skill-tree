@@ -78,17 +78,7 @@ export async function unlockSkill(skillId) {
     if (sErr || !skill) return { error: t("failedLoadSkills") };
     if (skill.unlocked) return { error: t("skillUnlocked") };
 
-    const userData = getCachedUserData() || (await fetchUserData()).data;
-    if (!userData) return { error: t("failedLoad") };
-    if (userData.exp < skill.xp_required)
-      return { error: t("needXP", { xp: skill.xp_required }) };
-
-    const { error: xpErr } = await addXP(
-      -skill.xp_required,
-      `Unlock: ${skill.name}`,
-    );
-    if (xpErr) return { error: xpErr };
-
+    // FIX: Instant unlock without XP deduction
     const { data, error } = await sb
       .from("skills")
       .update({ unlocked: true, unlocked_at: new Date().toISOString() })
@@ -181,32 +171,18 @@ export async function renderSkillTreePage() {
     return;
   }
 
-  const unlocked = skills.filter((s) => s.unlocked);
-  const available = skills.filter(
-    (s) =>
-      !s.unlocked && userLevel >= Math.max(1, Math.floor(s.xp_required / 50)),
-  );
-  const locked = skills.filter(
-    (s) =>
-      !s.unlocked && userLevel < Math.max(1, Math.floor(s.xp_required / 50)),
-  );
-
+  // FIX: All skills start as locked, click any to unlock instantly
   let html = '<div class="skill-nodes-grid">';
 
-  unlocked.forEach((skill) => {
-    html += renderSkillNode(skill, "unlocked");
-  });
-  available.forEach((skill) => {
-    html += renderSkillNode(skill, "available");
-  });
-  locked.forEach((skill) => {
-    html += renderSkillNode(skill, "locked");
+  skills.forEach((skill) => {
+    const status = skill.unlocked ? "unlocked" : "locked";
+    html += renderSkillNode(skill, status);
   });
 
   html += "</div>";
   container.innerHTML = html;
 
-  container.querySelectorAll(".skill-node.available").forEach((node) => {
+  container.querySelectorAll(".skill-node.locked").forEach((node) => {
     node.addEventListener("click", async () => {
       const skillId = node.dataset.skillId;
       const { error: unlockError, skill } = await unlockSkill(skillId);
@@ -275,14 +251,35 @@ export function renderSkillsList(containerId, skills) {
   list.innerHTML = skills
     .map(
       (skill) => `
-    <div class="skill-list-item ${skill.unlocked ? "unlocked" : ""}">
+    <div class="skill-list-item ${skill.unlocked ? "unlocked" : ""}" data-skill-id="${skill.id}">
       <span class="skill-icon-sm"><i class="fas ${skill.icon || "fa-star"}"></i></span>
       <div class="skill-info"><strong>${escapeHtml(skill.name)}</strong><small>${escapeHtml(skill.description || "")}</small></div>
-      <span class="skill-xp">${skill.xp_required} XP</span>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-secondary btn-edit-skill" data-skill-id="${skill.id}" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-sm btn-danger btn-delete-skill" data-skill-id="${skill.id}" title="Delete"><i class="fas fa-trash"></i></button>
+      </div>
     </div>
   `,
     )
     .join("");
+
+  // Bind edit/delete events
+  list.querySelectorAll(".btn-delete-skill").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(t("deleteConfirm") || "Delete this skill?")) return;
+      const { error } = await deleteSkill(btn.dataset.skillId);
+      if (error) {
+        showToast(error, "error");
+      } else {
+        showToast(t("skillDeleted") || "Skill deleted", "success");
+        // Refresh lists
+        const { skills: freshSkills } = await fetchUserSkills();
+        renderSkillsList(containerId, freshSkills);
+        await renderSkillTreePage();
+      }
+    });
+  });
 }
 
 function escapeHtml(text) {

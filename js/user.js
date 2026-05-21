@@ -219,20 +219,37 @@ export async function addActivity(type, description, value = null) {
 export async function uploadAvatar(file) {
   const userId = getCurrentUserId();
   if (!userId) return { url: null, error: "Not authenticated" };
+
+  // Validate file
+  if (!file || file.size > 5 * 1024 * 1024) {
+    return { url: null, error: "File too large (max 5MB)" };
+  }
+  if (!file.type.startsWith("image/")) {
+    return { url: null, error: "Only image files allowed" };
+  }
+
   const sb = await getSupabase();
   try {
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop().toLowerCase();
     const fileName = `${userId}-${Date.now()}.${ext}`;
-    const filePath = `avatars/${fileName}`;
+    const filePath = `${fileName}`; // FIX: Upload to root of bucket
 
     const { error: upErr } = await sb.storage
       .from("profiles")
-      .upload(filePath, file, { upsert: true });
-    if (upErr) throw upErr;
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+    if (upErr) {
+      console.error("Upload error:", upErr);
+      throw upErr;
+    }
 
     const {
       data: { publicUrl },
     } = sb.storage.from("profiles").getPublicUrl(filePath);
+
+    // Update profile with new avatar URL
     const { error: updateErr } = await updateUserProfile({
       avatar_url: publicUrl,
     });
@@ -241,7 +258,8 @@ export async function uploadAvatar(file) {
     if (userData) userData.avatar_url = publicUrl;
     return { url: publicUrl, error: null };
   } catch (error) {
-    return { url: null, error: error.message };
+    console.error("uploadAvatar error:", error);
+    return { url: null, error: error.message || "Upload failed" };
   }
 }
 
