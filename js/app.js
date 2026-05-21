@@ -60,6 +60,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (isInitialized) return;
   isInitialized = true;
 
+  // FIX: init Supabase once and wait for it
+  const sb = await initSupabase();
+  if (!sb) {
+    console.error("Failed to initialize Supabase");
+    window.location.href = "login.html";
+    return;
+  }
+
   setupGlobalEventListeners();
   setupAppActions();
   setupPageListeners();

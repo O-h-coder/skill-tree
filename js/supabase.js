@@ -52,7 +52,7 @@ export async function initSupabase() {
   }
 }
 
-initSupabase();
+// FIX: removed automatic initSupabase() call
 
 export function getSupabase() {
   if (!_sb) return initSupabase();

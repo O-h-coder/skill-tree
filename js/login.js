@@ -4,7 +4,7 @@
  */
 
 import { signUp, signIn, resetPassword, getCurrentUser } from "./auth.js";
-import { getSupabase } from "./supabase.js";
+import { initSupabase } from "./supabase.js"; // ← ضيف ده
 import { t } from "./i18n.js";
 
 let isRegisterMode = false;
@@ -38,23 +38,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (loadingScreen) loadingScreen.classList.add("active");
 
   try {
+    // FIX: init Supabase first
+    const sb = await initSupabase();
+    if (!sb) {
+      console.error("Failed to initialize Supabase");
+      if (loadingScreen) loadingScreen.classList.remove("active");
+      return;
+    }
+
     const { user } = await getCurrentUser();
     if (user) {
-      const sb = await getSupabase();
-      const { data: profile } = await sb
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single();
-      if (profile?.username) {
-        window.location.replace("index.html");
-        return;
-      }
-      if (loadingScreen) loadingScreen.classList.remove("active");
-      showUsernameSetup();
-    } else {
-      if (loadingScreen) loadingScreen.classList.remove("active");
+      window.location.replace("index.html");
+      return;
     }
+    if (loadingScreen) loadingScreen.classList.remove("active");
   } catch (err) {
     console.error("Login init error:", err);
     if (loadingScreen) loadingScreen.classList.remove("active");
