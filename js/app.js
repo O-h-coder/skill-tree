@@ -119,8 +119,8 @@ async function initApp(user) {
     }
 
     // Show content
-    document.getElementById("topbar").style.removeProperty("display");
-    document.getElementById("mainContent").style.removeProperty("display");
+    document.getElementById("topbar").style.display = "block";
+    document.getElementById("mainContent").style.display = "block";
     hideLoadingScreen();
 
     navigateTo("skillTree");
@@ -187,8 +187,8 @@ async function handleSaveUsername() {
     // Refresh user data and continue
     await fetchUserData();
 
-    document.getElementById("topbar").style.removeProperty("display");
-    document.getElementById("mainContent").style.removeProperty("display");
+    document.getElementById("topbar").style.display = "block";
+    document.getElementById("mainContent").style.display = "block";
     navigateTo("skillTree");
     await loadPageData("skillTree");
   } catch (err) {
