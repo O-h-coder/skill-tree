@@ -7,7 +7,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from "./constants.js";
 
 let _sb = null;
 
-function waitForSupabase(maxMs = 5000) {
+function waitForSupabase(maxMs = 10000) {
   return new Promise((resolve) => {
     const start = Date.now();
     const check = () => {
@@ -23,7 +23,7 @@ function waitForSupabase(maxMs = 5000) {
         resolve(false);
         return;
       }
-      setTimeout(check, 50);
+      setTimeout(check, 100);
     };
     check();
   });
@@ -37,7 +37,13 @@ export async function initSupabase() {
     return null;
   }
   try {
-    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+    });
     window._stSupabase = _sb;
     return _sb;
   } catch (e) {
@@ -48,7 +54,6 @@ export async function initSupabase() {
 
 initSupabase();
 
-// FIX: always return a Promise so .then() works everywhere
 export function getSupabase() {
   if (!_sb) return initSupabase();
   return Promise.resolve(_sb);

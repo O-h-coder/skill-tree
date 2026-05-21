@@ -8,14 +8,21 @@ import { getSupabase } from "./supabase.js";
 let currentUser = null;
 
 export async function getCurrentUser() {
-  const sb = await getSupabase();
-  const { data, error } = await sb.auth.getUser();
-  if (error) {
-    currentUser = null;
-    return { user: null, error: error.message };
+  try {
+    const sb = await getSupabase();
+    if (!sb) return { user: null, error: "Supabase not initialized" };
+
+    const { data, error } = await sb.auth.getUser();
+    if (error) {
+      currentUser = null;
+      return { user: null, error: error.message };
+    }
+    currentUser = data?.user || null;
+    return { user: currentUser, error: null };
+  } catch (err) {
+    console.error("getCurrentUser error:", err);
+    return { user: null, error: err.message };
   }
-  currentUser = data?.user || null;
-  return { user: currentUser, error: null };
 }
 
 export function getCurrentUserId() {
@@ -66,6 +73,7 @@ export async function signOut() {
 
 export function onAuthStateChange(callback) {
   getSupabase().then((sb) => {
+    if (!sb) return;
     sb.auth.onAuthStateChange((event, session) => {
       currentUser = session?.user || null;
       callback({ event, session, user: currentUser });
