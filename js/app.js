@@ -22,27 +22,21 @@ import {
   renderProfileItems,
   loadProfileSkills,
   loadProfileQuests,
-} from "./user.js";
-import {
-  loadSkills,
-  renderSkills,
-  unlockSkill,
+  openAddSkillModal,
   openEditSkillModal,
   saveSkillEdit,
-  deleteSkill,
-  closeModal as closeSkillModal,
-} from "./skills.js";
-import {
-  loadQuests,
-  renderQuests,
-  completeQuest,
-  openEditQuestModal,
+  saveNewSkill,
   openAddQuestModal,
+  openEditQuestModal,
   saveQuestEdit,
   saveNewQuest,
+  deleteSkill,
   deleteQuest,
-  closeModal as closeQuestModal,
-} from "./quests.js";
+  updateStats,
+  closeModal,
+} from "./user.js";
+import { loadSkills, renderSkills, viewSkill } from "./skills.js";
+import { loadQuests, renderQuests, completeQuest } from "./quests.js";
 import {
   loadFriends,
   loadFriendRequests,
@@ -58,12 +52,25 @@ import {
   updateBadges,
 } from "./friends.js";
 
+// ===== XP / Level Engine Config =====
+const XP_CONFIG = {
+  baseXp: 50,
+  rankTitles: {
+    E: { min: 1, max: 10, title: "E-Rank Hunter" },
+    D: { min: 11, max: 20, title: "D-Rank Hunter" },
+    C: { min: 21, max: 30, title: "C-Rank Hunter" },
+    B: { min: 31, max: 40, title: "B-Rank Hunter" },
+    A: { min: 41, max: 50, title: "A-Rank Hunter" },
+    S: { min: 51, max: Infinity, title: "S-Rank Hunter" },
+  },
+};
+
 let currentPage = "skillTree";
 let isSidebarCollapsed = false;
+let isDarkMode = true;
 
 // ===== Initialization =====
 async function init() {
-  // Load Supabase library
   if (!window.supabase) {
     const script = document.createElement("script");
     script.src =
@@ -80,47 +87,127 @@ async function init() {
 }
 
 async function startApp() {
-  showLoading(true);
+  try {
+    showLoading(true);
 
-  const isAuth = await requireAuth();
-  if (!isAuth) {
+    const isAuth = await requireAuth();
+    if (!isAuth) {
+      showLoading(false);
+      return;
+    }
+
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("auth-overlay").classList.add("hidden");
+
+    onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        window.location.href = "login.html";
+      }
+    });
+
+    setupEventDelegation();
+    initMobileNav();
+
+    await renderProfilePage();
+    await loadSkills();
+    renderSkills();
+    await loadQuests();
+    renderQuests();
+    await loadFriends();
+    renderFriends();
+    await loadFriendRequests();
+    renderRequests();
+    await updateBadges();
+    await loadNotifications();
+    setLoadFriendRequestsFn(loadFriendRequests);
+
+    // Initialize XP display
+    await initXpEngine();
+
+    // Check system preference for dark mode (no localStorage)
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: light)").matches
+    ) {
+      isDarkMode = false;
+      document.body.classList.add("light-mode");
+    }
+
+    navigateToPage("skillTree");
+    updatePageText();
+  } catch (err) {
+    console.error("startApp error:", err);
+    notify("Failed to initialize app. Please refresh.", "error");
+  } finally {
     showLoading(false);
-    return;
+  }
+}
+
+// ===== Mobile Navigation =====
+function initMobileNav() {
+  const mobileToggle = document.getElementById("mobile-menu-toggle");
+  if (mobileToggle) {
+    mobileToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleMobileSidebar();
+    });
   }
 
-  // Show app
-  document.getElementById("app").classList.remove("hidden");
-  document.getElementById("auth-overlay").classList.add("hidden");
+  // Close sidebar when clicking nav links on mobile
+  document.querySelectorAll(".nav-link").forEach((link) => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 768) {
+        closeMobileSidebar();
+      }
+    });
+  });
 
-  // Setup auth listener
-  onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT" || !session) {
-      window.location.href = "login.html";
+  // Close when clicking outside sidebar on mobile
+  document.addEventListener("click", (e) => {
+    const sidebar = document.getElementById("sidebar");
+    const mobileToggle = document.getElementById("mobile-menu-toggle");
+    if (
+      window.innerWidth <= 768 &&
+      sidebar &&
+      sidebar.classList.contains("mobile-open") &&
+      !sidebar.contains(e.target) &&
+      (!mobileToggle || !mobileToggle.contains(e.target))
+    ) {
+      closeMobileSidebar();
     }
   });
 
-  // Setup event delegation
-  setupEventDelegation();
+  // Close on resize to desktop
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      closeMobileSidebar();
+    }
+  });
 
-  // Load initial data
-  await renderProfilePage();
-  await loadSkills();
-  renderSkills();
-  await loadQuests();
-  renderQuests();
-  await loadFriends();
-  renderFriends();
-  await loadFriendRequests();
-  renderRequests();
-  await updateBadges();
-  await loadNotifications();
-  setLoadFriendRequestsFn(loadFriendRequests);
+  // Escape key closes mobile nav too
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeMobileSidebar();
+    }
+  });
+}
 
-  // Set initial page
-  navigateToPage("skillTree");
-  updatePageText();
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("mobile-overlay");
+  if (!sidebar) return;
 
-  showLoading(false);
+  const isOpen = sidebar.classList.toggle("mobile-open");
+  if (overlay) overlay.classList.toggle("active", isOpen);
+  document.body.classList.toggle("mobile-nav-open", isOpen);
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("mobile-overlay");
+  if (sidebar) sidebar.classList.remove("mobile-open");
+  if (overlay) overlay.classList.remove("active");
+  document.body.classList.remove("mobile-nav-open");
 }
 
 // ===== Event Delegation =====
@@ -131,34 +218,67 @@ function setupEventDelegation() {
 
     const action = target.dataset.action;
     const id = target.dataset.id;
-
     e.preventDefault();
 
     switch (action) {
       // Navigation
-      case "navigate":
+      case "navigate": {
         const page = target.dataset.page;
         if (page) navigateToPage(page);
         break;
+      }
 
       case "logout":
         await handleLogout();
         break;
 
-      // Skills
-      case "unlockSkill":
+      // Skills (View Only)
+      case "viewSkill":
         if (id) {
           showLoading(true);
-          await unlockSkill(id);
+          await viewSkill(id);
           showLoading(false);
         }
         break;
 
-      case "editSkill":
+      // Quests
+      case "completeQuest":
+        if (id) {
+          showLoading(true);
+          const result = await completeQuest(id);
+          // Add XP on quest completion (quest-specific reward, default 10)
+          const xpGain = result?.data?.xp_reward || 10;
+          if (!result?.error) {
+            await addXp(xpGain);
+          }
+          showLoading(false);
+        }
+        break;
+
+      // Profile Skills CRUD
+      case "showAddSkill":
+        openAddSkillModal();
+        break;
+
+      case "saveNewSkill": {
+        showLoading(true);
+        await saveNewSkill();
+        showLoading(false);
+        break;
+      }
+
+      case "editProfileSkill":
         if (id) openEditSkillModal(id);
         break;
 
-      case "deleteSkill":
+      case "saveSkillEdit": {
+        showLoading(true);
+        await saveSkillEdit();
+        showLoading(false);
+        break;
+      }
+
+      case "deleteProfileSkill":
         if (id && confirm(t("common.confirmDelete"))) {
           showLoading(true);
           await deleteSkill(id);
@@ -166,36 +286,30 @@ function setupEventDelegation() {
         }
         break;
 
-      case "saveSkillEdit":
-        showLoading(true);
-        await saveSkillEdit();
-        showLoading(false);
-        break;
-
-      // Quests
-      case "completeQuest":
-        if (id) {
-          showLoading(true);
-          await completeQuest(id);
-          showLoading(false);
-        }
-        break;
-
+      // Profile Quests CRUD
       case "showAddQuest":
         openAddQuestModal();
         break;
 
-      case "saveNewQuest":
+      case "saveNewQuest": {
         showLoading(true);
         await saveNewQuest();
         showLoading(false);
         break;
+      }
 
-      case "editQuest":
+      case "editProfileQuest":
         if (id) openEditQuestModal(id);
         break;
 
-      case "deleteQuest":
+      case "saveQuestEdit": {
+        showLoading(true);
+        await saveQuestEdit();
+        showLoading(false);
+        break;
+      }
+
+      case "deleteProfileQuest":
         if (id && confirm(t("common.confirmDelete"))) {
           showLoading(true);
           await deleteQuest(id);
@@ -203,19 +317,14 @@ function setupEventDelegation() {
         }
         break;
 
-      case "saveQuestEdit":
-        showLoading(true);
-        await saveQuestEdit();
-        showLoading(false);
-        break;
-
       // Friends
-      case "switchTab":
+      case "switchTab": {
         const tab = target.dataset.tab;
         if (tab) switchTab(tab);
         break;
+      }
 
-      case "searchFriends":
+      case "searchFriends": {
         const input = document.getElementById("friend-search-input");
         if (input) {
           showLoading(true);
@@ -223,13 +332,13 @@ function setupEventDelegation() {
           showLoading(false);
         }
         break;
+      }
 
       case "sendRequest":
         if (id) {
           showLoading(true);
           await sendFriendRequest(id);
           showLoading(false);
-          // Refresh search results
           const searchInput = document.getElementById("friend-search-input");
           if (searchInput) await searchUsers(searchInput.value);
         }
@@ -273,17 +382,29 @@ function setupEventDelegation() {
         break;
 
       // Profile
-      case "changeAvatar":
+      case "changeAvatar": {
         const avatarInput = document.getElementById("avatar-input");
         if (avatarInput) avatarInput.click();
         break;
+      }
 
       // Settings
-      case "changeLanguage":
+      case "changeLanguage": {
         const select = target;
         if (select) {
           setLanguage(select.value);
           updatePageText();
+        }
+        break;
+      }
+
+      case "toggleDarkMode":
+        toggleDarkMode();
+        break;
+
+      case "resetLevel":
+        if (confirm(t("settings.resetConfirm"))) {
+          await handleResetLevel();
         }
         break;
 
@@ -293,6 +414,13 @@ function setupEventDelegation() {
         }
         break;
 
+      // Color picker
+      case "changeColor": {
+        const color = target.dataset.color;
+        if (color) setThemeColor(color);
+        break;
+      }
+
       // Modals
       case "closeModal":
         closeAllModals();
@@ -300,7 +428,7 @@ function setupEventDelegation() {
     }
   });
 
-  // Sidebar toggle
+  // Sidebar toggle (desktop)
   const sidebarToggle = document.getElementById("sidebar-toggle");
   if (sidebarToggle) {
     sidebarToggle.addEventListener("click", () => {
@@ -310,7 +438,7 @@ function setupEventDelegation() {
     });
   }
 
-  // Avatar input change
+  // Avatar input
   const avatarInput = document.getElementById("avatar-input");
   if (avatarInput) {
     avatarInput.addEventListener("change", async (e) => {
@@ -320,7 +448,7 @@ function setupEventDelegation() {
     });
   }
 
-  // Friend search input enter key
+  // Friend search enter key
   const friendSearchInput = document.getElementById("friend-search-input");
   if (friendSearchInput) {
     friendSearchInput.addEventListener("keypress", async (e) => {
@@ -332,20 +460,19 @@ function setupEventDelegation() {
     });
   }
 
-  // Close modals on backdrop click
+  // Close modals on backdrop
   document.querySelectorAll(".modal").forEach((modal) => {
     modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        closeAllModals();
-      }
+      if (e.target === modal) closeAllModals();
     });
   });
 
-  // Close notifications on escape
+  // Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAllModals();
       closeNotifications();
+      closeMobileSidebar();
     }
   });
 }
@@ -354,7 +481,6 @@ function setupEventDelegation() {
 function navigateToPage(page) {
   currentPage = page;
 
-  // Update page title
   const titleEl = document.getElementById("page-title");
   if (titleEl) {
     const titles = {
@@ -367,20 +493,23 @@ function navigateToPage(page) {
     titleEl.textContent = titles[page] || page;
   }
 
-  // Update nav links
   document.querySelectorAll(".nav-link").forEach((link) => {
     link.classList.toggle("active", link.dataset.page === page);
   });
 
-  // Show/hide pages
   document.querySelectorAll(".page").forEach((p) => {
     p.classList.toggle("active", p.id === page);
   });
 
-  // Page-specific refresh
+  // Close mobile sidebar on navigation
+  if (window.innerWidth <= 768) {
+    closeMobileSidebar();
+  }
+
   if (page === "profile") {
-    renderProfilePage();
-    renderProfileItems();
+    renderProfilePage().then(() => {
+      renderProfileItems();
+    });
   } else if (page === "friends") {
     loadFriends().then(renderFriends);
     loadFriendRequests().then(() => {
@@ -399,13 +528,27 @@ async function handleLogout() {
   showLoading(true);
   const { error } = await signOut();
   showLoading(false);
-
   if (error) {
     notify(error.message, "error");
     return;
   }
-
   window.location.href = "login.html";
+}
+
+// ===== Reset Level & XP =====
+async function handleResetLevel() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return;
+
+  showLoading(true);
+  await updateStats({ level: 1, xp: 0, gold: 0 });
+
+  // Refresh XP display via engine
+  updateXpDisplay(calculateLevel(0));
+
+  notify(t("settings.resetSuccess"), "success");
+  showLoading(false);
 }
 
 // ===== Delete Account =====
@@ -416,8 +559,7 @@ async function handleDeleteAccount() {
 
   showLoading(true);
 
-  // Delete user data from tables
-  await supabase.from("user_skills").delete().eq("user_id", user.id);
+  await supabase.from("skills").delete().eq("user_id", user.id);
   await supabase.from("quests").delete().eq("user_id", user.id);
   await supabase
     .from("friendships")
@@ -427,11 +569,161 @@ async function handleDeleteAccount() {
   await supabase.from("user_stats").delete().eq("user_id", user.id);
   await supabase.from("profiles").delete().eq("id", user.id);
 
-  // Sign out
   await signOut();
-
   showLoading(false);
   window.location.href = "login.html";
+}
+
+// ===== XP / Level Engine =====
+
+function getTotalXpForLevel(level) {
+  if (level <= 1) return 0;
+  return XP_CONFIG.baseXp * (level - 1) * level;
+}
+
+export function calculateLevel(xp) {
+  let level = 1;
+  while (getTotalXpForLevel(level + 1) <= xp) {
+    level++;
+  }
+  const currentLevelBase = getTotalXpForLevel(level);
+  const nextLevelBase = getTotalXpForLevel(level + 1);
+  const currentXp = xp - currentLevelBase;
+  const nextLevelXp = nextLevelBase - currentLevelBase;
+  const progress = nextLevelXp === 0 ? 100 : (currentXp / nextLevelXp) * 100;
+
+  return {
+    level,
+    currentXp,
+    nextLevelXp,
+    progress: Math.min(100, Math.max(0, progress)),
+    totalXp: xp,
+  };
+}
+
+export function getRankTitle(level) {
+  for (const config of Object.values(XP_CONFIG.rankTitles)) {
+    if (level >= config.min && level <= config.max) {
+      return config.title;
+    }
+  }
+  return "Unknown";
+}
+
+export function getXpForLevel(level) {
+  return getTotalXpForLevel(level + 1) - getTotalXpForLevel(level);
+}
+
+export async function addXp(amount) {
+  if (!amount || amount <= 0) return;
+
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return;
+
+  // Get current stats
+  const { data: stats } = await supabase
+    .from("user_stats")
+    .select("xp, level, gold")
+    .eq("user_id", user.id)
+    .single();
+
+  const currentXp = stats?.xp || 0;
+  const currentLevel = stats?.level || 1;
+  const currentGold = stats?.gold || 0;
+
+  const newXp = currentXp + amount;
+  const newStats = calculateLevel(newXp);
+
+  // Update database
+  const { error } = await supabase.from("user_stats").upsert(
+    {
+      user_id: user.id,
+      xp: newXp,
+      level: newStats.level,
+      gold: currentGold,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    console.error("Add XP error:", error);
+    return;
+  }
+
+  // Level up notification
+  if (newStats.level > currentLevel) {
+    notify(
+      `${t("xp.levelUp") || "Level Up!"} — ${getRankTitle(newStats.level)} (Lv.${newStats.level})`,
+      "success",
+    );
+  } else {
+    notify(`+${amount} XP`, "info");
+  }
+
+  // Update display
+  updateXpDisplay(newStats);
+}
+
+export function updateXpDisplay(stats) {
+  if (!stats) return;
+
+  // Header elements
+  const headerLevelDisplay = document.getElementById("user-level-display");
+  const headerXp = document.getElementById("user-xp");
+  const headerRank = document.getElementById("user-rank");
+  const headerXpText = document.getElementById("header-xp-text");
+  const xpProgress = document.getElementById("xp-progress");
+
+  // Profile elements
+  const profileLevel = document.getElementById("profile-level");
+  const profileXp = document.getElementById("profile-xp");
+  const profileRank = document.getElementById("profile-rank");
+  const profileXpText = document.getElementById("profile-xp-text");
+  const profileProgress = document.getElementById("profile-progress");
+
+  if (headerLevelDisplay) headerLevelDisplay.textContent = `Lv.${stats.level}`;
+  if (headerXp)
+    headerXp.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
+  if (headerRank) headerRank.textContent = getRankTitle(stats.level);
+  if (headerXpText)
+    headerXpText.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
+  if (xpProgress) xpProgress.style.width = `${stats.progress}%`;
+
+  if (profileLevel) profileLevel.textContent = stats.level;
+  if (profileXp) profileXp.textContent = stats.currentXp;
+  if (profileRank) profileRank.textContent = getRankTitle(stats.level);
+  if (profileXpText)
+    profileXpText.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
+  if (profileProgress) profileProgress.style.width = `${stats.progress}%`;
+}
+
+export async function initXpEngine() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return;
+
+  const { data: stats } = await supabase
+    .from("user_stats")
+    .select("xp, level")
+    .eq("user_id", user.id)
+    .single();
+
+  const xp = stats?.xp || 0;
+  const levelStats = calculateLevel(xp);
+  updateXpDisplay(levelStats);
+}
+
+// ===== Theme =====
+function setThemeColor(color) {
+  document.documentElement.style.setProperty("--primary", color);
+  document.documentElement.style.setProperty("--primary-dark", color);
+}
+
+function toggleDarkMode() {
+  isDarkMode = !isDarkMode;
+  document.body.classList.toggle("light-mode", !isDarkMode);
 }
 
 // ===== Start =====

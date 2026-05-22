@@ -47,3 +47,142 @@
   outline: none;
   border-color: var(--primary);
 }
+
+/* ===== Color Picker ===== */
+.color-picker {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.color-option {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+}
+
+.color-option.active {
+  border-color: var(--text);
+  box-shadow:
+    0 0 0 2px var(--dark-light),
+    0 0 0 4px var(--text);
+}
+
+.color-option[data-color="indigo"] {
+  background: #6366f1;
+}
+.color-option[data-color="emerald"] {
+  background: #10b981;
+}
+.color-option[data-color="rose"] {
+  background: #f43f5e;
+}
+.color-option[data-color="amber"] {
+  background: #f59e0b;
+}
+.color-option[data-color="cyan"] {
+  background: #06b6d4;
+}
+
+/* ===== Theme Toggle ===== */
+.theme-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle-label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.theme-toggle {
+  position: relative;
+  width: 52px;
+  height: 26px;
+  background: var(--border);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  border: none;
+  padding: 0;
+}
+
+.theme-toggle[aria-pressed="true"] {
+  background: var(--primary);
+}
+
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle[aria-pressed="true"]::after {
+  transform: translateX(26px);
+}
+
+/* ===== Reset / Danger Buttons ===== */
+.btn-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--danger, #ef4444);
+  background: transparent;
+  color: var(--danger, #ef4444);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-reset:hover {
+  background: var(--danger, #ef4444);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-reset i {
+  font-size: 14px;
+}
+
+/* Danger zone card variant */
+.danger-zone {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.danger-zone h3 {
+  color: var(--danger, #ef4444);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .setting-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .color-picker {
+    justify-content: flex-start;
+  }
+}

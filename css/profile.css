@@ -1,6 +1,6 @@
 /* ===== Profile Page ===== */
 .profile-container {
-  max-width: 800px;
+  max-width: 900px;
 }
 
 .profile-card {
@@ -153,6 +153,7 @@
   background: rgba(99, 102, 241, 0.15);
   color: var(--primary);
 }
+
 .profile-item-icon.quest {
   background: rgba(16, 185, 129, 0.15);
   color: var(--secondary);
@@ -161,11 +162,13 @@
 .profile-item-content {
   flex: 1;
 }
+
 .profile-item-content h4 {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 2px;
 }
+
 .profile-item-content p {
   font-size: 12px;
   color: var(--text-muted);
@@ -194,6 +197,7 @@
   background: rgba(99, 102, 241, 0.15);
   color: var(--primary);
 }
+
 .profile-item-actions .btn-edit:hover {
   background: rgba(99, 102, 241, 0.3);
 }
@@ -202,8 +206,118 @@
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
 }
+
 .profile-item-actions .btn-delete:hover {
   background: rgba(239, 68, 68, 0.3);
+}
+
+/* Activity Log */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--dark);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.activity-item:hover {
+  border-color: var(--primary);
+}
+
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.activity-icon.skill {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+}
+
+.activity-icon.quest {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--secondary);
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.activity-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.activity-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Add Button in Section Header */
+.btn-add-section {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-add-section:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+/* Color Picker Input */
+input[type="color"] {
+  width: 50px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: none;
+}
+
+/* Icon Select */
+.icon-select {
+  padding: 10px 14px;
+  background: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  min-width: 150px;
 }
 
 /* Responsive */
@@ -212,7 +326,14 @@
     flex-direction: column;
     text-align: center;
   }
+
   .profile-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
   }
 }

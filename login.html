@@ -9,12 +9,31 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
+
     <base target="_blank" />
   </head>
   <body>
     <div class="login-container">
       <div class="login-card">
         <div class="login-header">
+          <div class="login-actions">
+            <button
+              type="button"
+              class="icon-btn"
+              data-action="toggleTheme"
+              aria-label="Toggle theme"
+            >
+              <i class="fas fa-moon"></i>
+            </button>
+            <button
+              type="button"
+              class="icon-btn"
+              data-action="toggleLang"
+              aria-label="Toggle language"
+            >
+              <i class="fas fa-globe"></i> <span id="lang-label">EN</span>
+            </button>
+          </div>
           <div class="logo">
             <i class="fas fa-chess-knight"></i>
             <h1 data-i18n="app.title">Skill Tree</h1>
@@ -23,22 +42,39 @@
         </div>
 
         <!-- Toast Container -->
-        <div id="toast-container"></div>
+        <div id="toast-container" role="status" aria-live="polite"></div>
 
         <!-- Login Form -->
-        <form id="login-form" class="auth-form">
+        <form id="login-form" class="auth-form" novalidate>
           <div class="form-group">
-            <label data-i18n="login.email">البريد الإلكتروني</label>
-            <input type="email" id="login-email" required />
+            <label for="login-email" data-i18n="login.email"
+              >البريد الإلكتروني</label
+            >
+            <input
+              type="email"
+              id="login-email"
+              required
+              aria-required="true"
+              autocomplete="email"
+            />
           </div>
           <div class="form-group">
-            <label data-i18n="login.password">كلمة المرور</label>
+            <label for="login-password" data-i18n="login.password"
+              >كلمة المرور</label
+            >
             <div class="password-wrapper">
-              <input type="password" id="login-password" required />
+              <input
+                type="password"
+                id="login-password"
+                required
+                aria-required="true"
+                autocomplete="current-password"
+              />
               <button
                 type="button"
                 class="toggle-password"
                 data-action="togglePassword"
+                aria-label="Toggle password visibility"
               >
                 <i class="fas fa-eye"></i>
               </button>
@@ -54,34 +90,51 @@
         </form>
 
         <!-- Register Form -->
-        <form id="register-form" class="auth-form hidden">
+        <form id="register-form" class="auth-form hidden" novalidate>
           <div class="form-group">
-            <label data-i18n="login.username">اسم المستخدم</label>
+            <label for="register-username" data-i18n="login.username"
+              >اسم المستخدم</label
+            >
             <input
               type="text"
               id="register-username"
               required
               minlength="3"
               maxlength="20"
+              aria-required="true"
+              autocomplete="username"
             />
           </div>
           <div class="form-group">
-            <label data-i18n="login.email">البريد الإلكتروني</label>
-            <input type="email" id="register-email" required />
+            <label for="register-email" data-i18n="login.email"
+              >البريد الإلكتروني</label
+            >
+            <input
+              type="email"
+              id="register-email"
+              required
+              aria-required="true"
+              autocomplete="email"
+            />
           </div>
           <div class="form-group">
-            <label data-i18n="login.password">كلمة المرور</label>
+            <label for="register-password" data-i18n="login.password"
+              >كلمة المرور</label
+            >
             <div class="password-wrapper">
               <input
                 type="password"
                 id="register-password"
                 required
                 minlength="6"
+                aria-required="true"
+                autocomplete="new-password"
               />
               <button
                 type="button"
                 class="toggle-password"
                 data-action="togglePassword"
+                aria-label="Toggle password visibility"
               >
                 <i class="fas fa-eye"></i>
               </button>
@@ -110,7 +163,7 @@
           </p>
         </div>
 
-        <div id="loading" class="loading hidden">
+        <div id="loading" class="loading hidden" aria-hidden="true">
           <div class="spinner"></div>
           <span data-i18n="loading">جاري التحميل...</span>
         </div>

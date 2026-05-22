@@ -13,7 +13,7 @@ export async function loadFriends() {
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
 
-  // Get accepted friendships
+  // Get accepted friendships where current user is either sender or recipient
   const { data, error } = await supabase
     .from("friendships")
     .select(
@@ -35,7 +35,7 @@ export async function loadFriends() {
     return [];
   }
 
-  // Normalize friend data
+  // Normalize friend data — pick the profile that is NOT the current user
   currentFriends = (data || []).map((f) => {
     const isUserSender = f.user_id === user.id;
     const friendProfile = isUserSender ? f.profiles : f.requester;
@@ -100,7 +100,7 @@ export async function sendFriendRequest(friendId) {
     return { error: new Error("Cannot send request to yourself") };
   }
 
-  // Check if already friends or request exists
+  // Check if already friends or request exists in either direction
   const { data: existing, error: checkError } = await supabase
     .from("friendships")
     .select("*")
@@ -150,9 +150,10 @@ export async function acceptFriendRequest(requestId) {
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
+  // Update status only — accepted_at may not exist in rebuilt schema
   const { data, error } = await supabase
     .from("friendships")
-    .update({ status: "accepted", accepted_at: new Date().toISOString() })
+    .update({ status: "accepted" })
     .eq("id", requestId)
     .eq("friend_id", user.id)
     .select()
@@ -245,7 +246,7 @@ export async function searchUsers(query) {
     return [];
   }
 
-  // Check friendship status for each
+  // Check friendship status for each result
   const { data: friendships } = await supabase
     .from("friendships")
     .select("*")
@@ -284,15 +285,15 @@ export function renderFriends() {
       .map(
         (friend) => `
             <div class="friend-card" data-friend-id="${friend.friend_id}">
-                <img class="friend-avatar" src="${friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.username)}&background=6366f1&color=fff`}" alt="${friend.username}">
+                <img class="friend-avatar" src="${friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.username)}&background=6366f1&color=fff`}" alt="${friend.username}" loading="lazy">
                 <h4 class="friend-name">${friend.username}</h4>
                 <p class="friend-level">${friend.email}</p>
                 <div class="friend-actions">
                     <button class="btn-view-friend" data-action="viewFriend" data-id="${friend.friend_id}">
-                        <i class="fas fa-eye"></i> ${t("common.edit")}
+                        <i class="fas fa-eye"></i> <span data-i18n="common.view">${t("common.view") || t("common.edit") || "View"}</span>
                     </button>
                     <button class="btn-remove-friend" data-action="removeFriend" data-id="${friend.friendship_id}">
-                        <i class="fas fa-user-minus"></i> ${t("friends.remove")}
+                        <i class="fas fa-user-minus"></i> <span data-i18n="friends.remove">${t("friends.remove")}</span>
                     </button>
                 </div>
             </div>
@@ -317,7 +318,7 @@ export function renderRequests() {
       .map(
         (req) => `
             <div class="request-card" data-request-id="${req.id}">
-                <img class="request-avatar" src="${req.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.username)}&background=6366f1&color=fff`}" alt="${req.username}">
+                <img class="request-avatar" src="${req.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.username)}&background=6366f1&color=fff`}" alt="${req.username}" loading="lazy">
                 <div class="request-info">
                     <h4 class="request-name">${req.username}</h4>
                     <p class="request-email">${req.email}</p>
@@ -359,7 +360,7 @@ export function renderSearchResults() {
 
       return `
             <div class="search-result-card" data-user-id="${user.id}">
-                <img class="friend-avatar" src="${user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=6366f1&color=fff`}" alt="${user.username}">
+                <img class="friend-avatar" src="${user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=6366f1&color=fff`}" alt="${user.username}" loading="lazy">
                 <h4 class="friend-name">${user.username}</h4>
                 <p class="friend-email">${user.email}</p>
                 ${buttonHtml}

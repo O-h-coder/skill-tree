@@ -38,20 +38,44 @@ function toggleAuthMode() {
   const loginForm = document.getElementById("login-form");
   const registerForm = document.getElementById("register-form");
   const switchText = document.getElementById("switch-text");
-  const switchBtn = document.getElementById("switch-btn");
 
   if (loginForm) loginForm.classList.toggle("hidden", !isLoginMode);
   if (registerForm) registerForm.classList.toggle("hidden", isLoginMode);
 
-  if (switchText && switchBtn) {
+  if (switchText) {
     if (isLoginMode) {
       switchText.innerHTML = `<span>${t("login.noAccount")}</span> <button id="switch-btn" class="text-btn" data-action="switchAuth">${t("login.registerLink")}</button>`;
     } else {
       switchText.innerHTML = `<span>${t("login.haveAccount")}</span> <button id="switch-btn" class="text-btn" data-action="switchAuth">${t("login.loginLink")}</button>`;
     }
-    document
-      .getElementById("switch-btn")
-      .addEventListener("click", toggleAuthMode);
+    // Event listener handled by delegation in DOMContentLoaded, no need to re-attach
+  }
+}
+
+/**
+ * Check if an account exists by querying the profiles table.
+ * Returns: true (exists), false (not found), null (unknown/error — likely RLS blocked).
+ */
+async function checkAccountExists(email) {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Account check error:", error);
+      return null;
+    }
+
+    return !!data;
+  } catch (err) {
+    console.error("Account check exception:", err);
+    return null;
   }
 }
 
@@ -65,7 +89,19 @@ async function handleLogin(e) {
     return;
   }
 
+  // Check account existence before attempting login
   showLoading(true);
+  const exists = await checkAccountExists(email);
+
+  if (exists === false) {
+    showLoading(false);
+    notify(
+      t("login.accountNotFound") || "Account not found. Please register first.",
+      "error",
+    );
+    return;
+  }
+
   const { data, error } = await signIn(email, password);
   showLoading(false);
 
@@ -128,6 +164,51 @@ function togglePasswordVisibility(e) {
   }
 }
 
+/**
+ * Toggle between Arabic and English
+ */
+function toggleLanguage() {
+  const currentLang = document.documentElement.lang || "ar";
+  const newLang = currentLang === "ar" ? "en" : "ar";
+
+  document.documentElement.lang = newLang;
+  document.documentElement.dir = newLang === "ar" ? "rtl" : "ltr";
+
+  if (typeof setLanguage === "function") {
+    setLanguage(newLang);
+  }
+
+  const langLabel = document.getElementById("lang-label");
+  if (langLabel) {
+    langLabel.textContent = newLang === "ar" ? "EN" : "AR";
+  }
+
+  // Re-render auth switch text to apply new translations
+  const switchText = document.getElementById("switch-text");
+  if (switchText) {
+    if (isLoginMode) {
+      switchText.innerHTML = `<span>${t("login.noAccount")}</span> <button id="switch-btn" class="text-btn" data-action="switchAuth">${t("login.registerLink")}</button>`;
+    } else {
+      switchText.innerHTML = `<span>${t("login.haveAccount")}</span> <button id="switch-btn" class="text-btn" data-action="switchAuth">${t("login.loginLink")}</button>`;
+    }
+    const switchBtn = document.getElementById("switch-btn");
+    if (switchBtn) switchBtn.addEventListener("click", toggleAuthMode);
+  }
+}
+
+/**
+ * Toggle dark / light theme
+ */
+function toggleTheme() {
+  const body = document.body;
+  const isLight = body.classList.toggle("light-mode");
+
+  const icon = document.querySelector('[data-action="toggleTheme"] i');
+  if (icon) {
+    icon.className = isLight ? "fas fa-sun" : "fas fa-moon";
+  }
+}
+
 async function init() {
   // Load Supabase library
   if (!window.supabase) {
@@ -161,16 +242,23 @@ async function checkSession() {
 document.addEventListener("DOMContentLoaded", () => {
   init();
 
-  const loginForm = document.getElementById("login-form");
-  const registerForm = document.getElementById("register-form");
+  const _loginForm = document.getElementById("login-form");
+  const _registerForm = document.getElementById("register-form");
 
-  if (loginForm) loginForm.addEventListener("submit", handleLogin);
-  if (registerForm) registerForm.addEventListener("submit", handleRegister);
+  if (_loginForm) _loginForm.addEventListener("submit", handleLogin);
+  if (_registerForm) _registerForm.addEventListener("submit", handleRegister);
 
   document.querySelectorAll('[data-action="togglePassword"]').forEach((btn) => {
     btn.addEventListener("click", togglePasswordVisibility);
   });
 
-  const switchBtn = document.getElementById("switch-btn");
-  if (switchBtn) switchBtn.addEventListener("click", toggleAuthMode);
+  // Language toggle
+  document.querySelectorAll('[data-action="toggleLang"]').forEach((btn) => {
+    btn.addEventListener("click", toggleLanguage);
+  });
+
+  // Theme toggle
+  document.querySelectorAll('[data-action="toggleTheme"]').forEach((btn) => {
+    btn.addEventListener("click", toggleTheme);
+  });
 });
