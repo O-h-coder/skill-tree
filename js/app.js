@@ -8,14 +8,13 @@ import {
   requireAuth,
 } from "./auth.js";
 import { t, setLanguage, updatePageText, getCurrentLang } from "./i18n.js";
+import { notify, showLoading, closeAllModals } from "./utils.js";
 import {
-  notify,
-  closeAllModals,
-  showLoading,
   toggleNotifications,
   closeNotifications,
   markAllRead,
   loadNotifications,
+  setLoadFriendRequestsFn,
 } from "./ui.js";
 import {
   renderProfilePage,
@@ -115,6 +114,7 @@ async function startApp() {
   renderRequests();
   await updateBadges();
   await loadNotifications();
+  setLoadFriendRequestsFn(loadFriendRequests);
 
   // Set initial page
   navigateToPage("skillTree");
@@ -241,6 +241,7 @@ function setupEventDelegation() {
           await acceptFriendRequest(id);
           showLoading(false);
           await loadNotifications();
+          setLoadFriendRequestsFn(loadFriendRequests);
         }
         break;
 
@@ -250,6 +251,7 @@ function setupEventDelegation() {
           await declineFriendRequest(id);
           showLoading(false);
           await loadNotifications();
+          setLoadFriendRequestsFn(loadFriendRequests);
         }
         break;
 

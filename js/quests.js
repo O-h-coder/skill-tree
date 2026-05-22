@@ -2,7 +2,7 @@
 import { getSupabase } from "./supabase.js";
 import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
-import { notify } from "./ui.js";
+import { notify } from "./utils.js";
 import { updateStats, loadUserStats } from "./user.js";
 
 let currentQuests = [];

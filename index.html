@@ -1,355 +1,507 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title data-i18n="app.title">Skill Tree - Solo Leveling</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/skills.css">
-    <link rel="stylesheet" href="css/quests.css">
-    <link rel="stylesheet" href="css/friends.css">
-    <link rel="stylesheet" href="css/profile.css">
-    <link rel="stylesheet" href="css/settings.css">
-    <link rel="stylesheet" href="css/notifications.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<base target="_blank">
-</head>
-<body>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/skills.css" />
+    <link rel="stylesheet" href="css/quests.css" />
+    <link rel="stylesheet" href="css/friends.css" />
+    <link rel="stylesheet" href="css/profile.css" />
+    <link rel="stylesheet" href="css/settings.css" />
+    <link rel="stylesheet" href="css/notifications.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <base target="_blank" />
+  </head>
+  <body>
     <!-- Toast Notifications Container -->
     <div id="toast-container"></div>
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-        <p data-i18n="loading">جاري التحميل...</p>
+      <div class="spinner"></div>
+      <p data-i18n="loading">جاري التحميل...</p>
     </div>
 
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="hidden">
-        <div class="auth-message">
-            <i class="fas fa-lock"></i>
-            <p data-i18n="auth.pleaseLogin">يرجى تسجيل الدخول</p>
-            <a href="login.html" class="btn btn-primary" data-i18n="auth.login">تسجيل الدخول</a>
-        </div>
+      <div class="auth-message">
+        <i class="fas fa-lock"></i>
+        <p data-i18n="auth.pleaseLogin">يرجى تسجيل الدخول</p>
+        <a href="login.html" class="btn btn-primary" data-i18n="auth.login"
+          >تسجيل الدخول</a
+        >
+      </div>
     </div>
 
     <!-- App Container -->
     <div id="app" class="hidden">
-        <!-- Sidebar Navigation -->
-        <nav id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fas fa-chess-knight"></i>
-                    <span data-i18n="app.title">Skill Tree</span>
+      <!-- Sidebar Navigation -->
+      <nav id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <i class="fas fa-chess-knight"></i>
+            <span data-i18n="app.title">Skill Tree</span>
+          </div>
+          <button id="sidebar-toggle" class="sidebar-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+        <ul class="nav-menu">
+          <li>
+            <a
+              href="#"
+              data-page="skillTree"
+              data-action="navigate"
+              class="nav-link active"
+            >
+              <i class="fas fa-sitemap"></i
+              ><span data-i18n="nav.skillTree">شجرة المهارات</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              data-page="dailyQuests"
+              data-action="navigate"
+              class="nav-link"
+            >
+              <i class="fas fa-scroll"></i
+              ><span data-i18n="nav.dailyQuests">المهام اليومية</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              data-page="friends"
+              data-action="navigate"
+              class="nav-link"
+            >
+              <i class="fas fa-users"></i
+              ><span data-i18n="nav.friends">الأصدقاء</span>
+              <span id="friends-badge" class="badge hidden">0</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              data-page="profile"
+              data-action="navigate"
+              class="nav-link"
+            >
+              <i class="fas fa-user"></i
+              ><span data-i18n="nav.profile">الملف الشخصي</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              data-page="settings"
+              data-action="navigate"
+              class="nav-link"
+            >
+              <i class="fas fa-cog"></i
+              ><span data-i18n="nav.settings">الإعدادات</span>
+            </a>
+          </li>
+        </ul>
+        <div class="sidebar-footer">
+          <button id="logout-btn" data-action="logout" class="btn btn-danger">
+            <i class="fas fa-sign-out-alt"></i
+            ><span data-i18n="auth.logout">تسجيل الخروج</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main id="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+          <div class="header-left">
+            <h2 id="page-title" data-i18n="nav.skillTree">شجرة المهارات</h2>
+          </div>
+          <div class="header-right">
+            <!-- Notification Bell -->
+            <div class="notification-wrapper">
+              <button
+                id="notification-btn"
+                class="icon-btn"
+                data-action="toggleNotifications"
+              >
+                <i class="fas fa-bell"></i>
+                <span id="notification-badge" class="badge hidden">0</span>
+              </button>
+              <div id="notification-panel" class="notification-panel hidden">
+                <div class="notification-header">
+                  <h3 data-i18n="notifications.title">الإشعارات</h3>
+                  <button
+                    id="mark-all-read"
+                    data-action="markAllRead"
+                    class="text-btn"
+                    data-i18n="notifications.markAllRead"
+                  >
+                    تحديد الكل مقروء
+                  </button>
                 </div>
-                <button id="sidebar-toggle" class="sidebar-toggle">
-                    <i class="fas fa-bars"></i>
+                <div id="notification-list" class="notification-list">
+                  <p class="empty-state" data-i18n="notifications.empty">
+                    لا توجد إشعارات
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="user-mini">
+              <img
+                id="header-avatar"
+                src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
+                alt="avatar"
+              />
+              <span id="header-username">User</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Pages -->
+        <div id="pages-container">
+          <!-- Skill Tree Page -->
+          <section id="skillTree" class="page active">
+            <div class="page-header">
+              <div class="user-stats-bar">
+                <div class="stat-item">
+                  <i class="fas fa-star"></i>
+                  <span id="user-level">Level 1</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-bolt"></i>
+                  <span id="user-xp">0 XP</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-coins"></i>
+                  <span id="user-gold">0 Gold</span>
+                </div>
+              </div>
+            </div>
+            <div id="skills-grid" class="skills-grid"></div>
+          </section>
+
+          <!-- Daily Quests Page -->
+          <section id="dailyQuests" class="page">
+            <div class="page-header">
+              <h3 data-i18n="quests.title">المهام اليومية</h3>
+              <button
+                id="add-quest-btn"
+                class="btn btn-primary"
+                data-action="showAddQuest"
+              >
+                <i class="fas fa-plus"></i
+                ><span data-i18n="quests.add">إضافة مهمة</span>
+              </button>
+            </div>
+            <div id="quests-list" class="quests-list"></div>
+            <div id="completed-quests" class="completed-quests hidden">
+              <h4 data-i18n="quests.completed">المهام المكتملة</h4>
+              <div id="completed-list"></div>
+            </div>
+          </section>
+
+          <!-- Friends Page -->
+          <section id="friends" class="page">
+            <div class="friends-container">
+              <div class="friends-tabs">
+                <button
+                  class="tab-btn active"
+                  data-tab="myFriends"
+                  data-action="switchTab"
+                >
+                  <i class="fas fa-user-friends"></i>
+                  <span data-i18n="friends.myFriends">أصدقائي</span>
                 </button>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#" data-page="skillTree" data-action="navigate" class="nav-link active">
-                    <i class="fas fa-sitemap"></i><span data-i18n="nav.skillTree">شجرة المهارات</span>
-                </a></li>
-                <li><a href="#" data-page="dailyQuests" data-action="navigate" class="nav-link">
-                    <i class="fas fa-scroll"></i><span data-i18n="nav.dailyQuests">المهام اليومية</span>
-                </a></li>
-                <li><a href="#" data-page="friends" data-action="navigate" class="nav-link">
-                    <i class="fas fa-users"></i><span data-i18n="nav.friends">الأصدقاء</span>
-                    <span id="friends-badge" class="badge hidden">0</span>
-                </a></li>
-                <li><a href="#" data-page="profile" data-action="navigate" class="nav-link">
-                    <i class="fas fa-user"></i><span data-i18n="nav.profile">الملف الشخصي</span>
-                </a></li>
-                <li><a href="#" data-page="settings" data-action="navigate" class="nav-link">
-                    <i class="fas fa-cog"></i><span data-i18n="nav.settings">الإعدادات</span>
-                </a></li>
-            </ul>
-            <div class="sidebar-footer">
-                <button id="logout-btn" data-action="logout" class="btn btn-danger">
-                    <i class="fas fa-sign-out-alt"></i><span data-i18n="auth.logout">تسجيل الخروج</span>
+                <button
+                  class="tab-btn"
+                  data-tab="requests"
+                  data-action="switchTab"
+                >
+                  <i class="fas fa-envelope"></i>
+                  <span data-i18n="friends.requests">طلبات الصداقة</span>
+                  <span id="requests-badge" class="badge hidden">0</span>
                 </button>
-            </div>
-        </nav>
+                <button
+                  class="tab-btn"
+                  data-tab="findFriends"
+                  data-action="switchTab"
+                >
+                  <i class="fas fa-search"></i>
+                  <span data-i18n="friends.find">بحث</span>
+                </button>
+              </div>
 
-        <!-- Main Content -->
-        <main id="main-content">
-            <!-- Top Header -->
-            <header class="top-header">
-                <div class="header-left">
-                    <h2 id="page-title" data-i18n="nav.skillTree">شجرة المهارات</h2>
+              <!-- My Friends Tab -->
+              <div id="myFriends-tab" class="tab-content active">
+                <div id="friends-list" class="friends-grid"></div>
+                <div id="no-friends" class="empty-state-box hidden">
+                  <i class="fas fa-users-slash"></i>
+                  <p data-i18n="friends.noFriends">لا يوجد أصدقاء بعد</p>
                 </div>
-                <div class="header-right">
-                    <!-- Notification Bell -->
-                    <div class="notification-wrapper">
-                        <button id="notification-btn" class="icon-btn" data-action="toggleNotifications">
-                            <i class="fas fa-bell"></i>
-                            <span id="notification-badge" class="badge hidden">0</span>
-                        </button>
-                        <div id="notification-panel" class="notification-panel hidden">
-                            <div class="notification-header">
-                                <h3 data-i18n="notifications.title">الإشعارات</h3>
-                                <button id="mark-all-read" data-action="markAllRead" class="text-btn" data-i18n="notifications.markAllRead">تحديد الكل مقروء</button>
-                            </div>
-                            <div id="notification-list" class="notification-list">
-                                <p class="empty-state" data-i18n="notifications.empty">لا توجد إشعارات</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="user-mini">
-                        <img id="header-avatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="avatar">
-                        <span id="header-username">User</span>
-                    </div>
+              </div>
+
+              <!-- Requests Tab -->
+              <div id="requests-tab" class="tab-content">
+                <div id="requests-list" class="requests-list"></div>
+                <div id="no-requests" class="empty-state-box hidden">
+                  <i class="fas fa-inbox"></i>
+                  <p data-i18n="friends.noRequests">لا توجد طلبات صداقة</p>
                 </div>
-            </header>
+              </div>
 
-            <!-- Pages -->
-            <div id="pages-container">
-                <!-- Skill Tree Page -->
-                <section id="skillTree" class="page active">
-                    <div class="page-header">
-                        <div class="user-stats-bar">
-                            <div class="stat-item">
-                                <i class="fas fa-star"></i>
-                                <span id="user-level">Level 1</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-bolt"></i>
-                                <span id="user-xp">0 XP</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-coins"></i>
-                                <span id="user-gold">0 Gold</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="skills-grid" class="skills-grid"></div>
-                </section>
-
-                <!-- Daily Quests Page -->
-                <section id="dailyQuests" class="page">
-                    <div class="page-header">
-                        <h3 data-i18n="quests.title">المهام اليومية</h3>
-                        <button id="add-quest-btn" class="btn btn-primary" data-action="showAddQuest">
-                            <i class="fas fa-plus"></i><span data-i18n="quests.add">إضافة مهمة</span>
-                        </button>
-                    </div>
-                    <div id="quests-list" class="quests-list"></div>
-                    <div id="completed-quests" class="completed-quests hidden">
-                        <h4 data-i18n="quests.completed">المهام المكتملة</h4>
-                        <div id="completed-list"></div>
-                    </div>
-                </section>
-
-                <!-- Friends Page -->
-                <section id="friends" class="page">
-                    <div class="friends-container">
-                        <div class="friends-tabs">
-                            <button class="tab-btn active" data-tab="myFriends" data-action="switchTab">
-                                <i class="fas fa-user-friends"></i>
-                                <span data-i18n="friends.myFriends">أصدقائي</span>
-                            </button>
-                            <button class="tab-btn" data-tab="requests" data-action="switchTab">
-                                <i class="fas fa-envelope"></i>
-                                <span data-i18n="friends.requests">طلبات الصداقة</span>
-                                <span id="requests-badge" class="badge hidden">0</span>
-                            </button>
-                            <button class="tab-btn" data-tab="findFriends" data-action="switchTab">
-                                <i class="fas fa-search"></i>
-                                <span data-i18n="friends.find">بحث</span>
-                            </button>
-                        </div>
-
-                        <!-- My Friends Tab -->
-                        <div id="myFriends-tab" class="tab-content active">
-                            <div id="friends-list" class="friends-grid"></div>
-                            <div id="no-friends" class="empty-state-box hidden">
-                                <i class="fas fa-users-slash"></i>
-                                <p data-i18n="friends.noFriends">لا يوجد أصدقاء بعد</p>
-                            </div>
-                        </div>
-
-                        <!-- Requests Tab -->
-                        <div id="requests-tab" class="tab-content">
-                            <div id="requests-list" class="requests-list"></div>
-                            <div id="no-requests" class="empty-state-box hidden">
-                                <i class="fas fa-inbox"></i>
-                                <p data-i18n="friends.noRequests">لا توجد طلبات صداقة</p>
-                            </div>
-                        </div>
-
-                        <!-- Find Friends Tab -->
-                        <div id="findFriends-tab" class="tab-content">
-                            <div class="search-box">
-                                <input type="text" id="friend-search-input" data-i18n-placeholder="friends.searchPlaceholder" placeholder="ابحث باسم المستخدم أو البريد الإلكتروني...">
-                                <button id="friend-search-btn" class="btn btn-primary" data-action="searchFriends">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                            <div id="search-results" class="search-results"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Profile Page -->
-                <section id="profile" class="page">
-                    <div class="profile-container">
-                        <div class="profile-card">
-                            <div class="profile-avatar-section">
-                                <div class="avatar-wrapper">
-                                    <img id="profile-avatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="avatar">
-                                    <button id="change-avatar-btn" class="avatar-overlay" data-action="changeAvatar">
-                                        <i class="fas fa-camera"></i>
-                                    </button>
-                                </div>
-                                <input type="file" id="avatar-input" accept="image/*" class="hidden">
-                            </div>
-                            <div class="profile-info">
-                                <h2 id="profile-username">User</h2>
-                                <p id="profile-email">user@example.com</p>
-                                <div class="profile-stats">
-                                    <div class="profile-stat">
-                                        <span id="profile-level" class="stat-value">1</span>
-                                        <span class="stat-label" data-i18n="profile.level">المستوى</span>
-                                    </div>
-                                    <div class="profile-stat">
-                                        <span id="profile-xp" class="stat-value">0</span>
-                                        <span class="stat-label" data-i18n="profile.xp">الخبرة</span>
-                                    </div>
-                                    <div class="profile-stat">
-                                        <span id="profile-gold" class="stat-value">0</span>
-                                        <span class="stat-label" data-i18n="profile.gold">الذهب</span>
-                                    </div>
-                                    <div class="profile-stat">
-                                        <span id="profile-friends" class="stat-value">0</span>
-                                        <span class="stat-label" data-i18n="profile.friends">الأصدقاء</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- My Skills Section -->
-                        <div class="profile-section">
-                            <div class="section-header">
-                                <h3 data-i18n="profile.mySkills">مهاراتي</h3>
-                            </div>
-                            <div id="profile-skills-list" class="profile-items-list"></div>
-                        </div>
-
-                        <!-- My Quests Section -->
-                        <div class="profile-section">
-                            <div class="section-header">
-                                <h3 data-i18n="profile.myQuests">مهامي</h3>
-                            </div>
-                            <div id="profile-quests-list" class="profile-items-list"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Settings Page -->
-                <section id="settings" class="page">
-                    <div class="settings-container">
-                        <div class="settings-card">
-                            <h3 data-i18n="settings.language">اللغة</h3>
-                            <div class="setting-row">
-                                <label data-i18n="settings.selectLanguage">اختر اللغة</label>
-                                <select id="language-select" data-action="changeLanguage">
-                                    <option value="ar">العربية</option>
-                                    <option value="en">English</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-card">
-                            <h3 data-i18n="settings.account">الحساب</h3>
-                            <div class="setting-row">
-                                <button class="btn btn-danger" data-action="deleteAccount" data-i18n="settings.deleteAccount">حذف الحساب</button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+              <!-- Find Friends Tab -->
+              <div id="findFriends-tab" class="tab-content">
+                <div class="search-box">
+                  <input
+                    type="text"
+                    id="friend-search-input"
+                    data-i18n-placeholder="friends.searchPlaceholder"
+                    placeholder="ابحث باسم المستخدم أو البريد الإلكتروني..."
+                  />
+                  <button
+                    id="friend-search-btn"
+                    class="btn btn-primary"
+                    data-action="searchFriends"
+                  >
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+                <div id="search-results" class="search-results"></div>
+              </div>
             </div>
-        </main>
+          </section>
+
+          <!-- Profile Page -->
+          <section id="profile" class="page">
+            <div class="profile-container">
+              <div class="profile-card">
+                <div class="profile-avatar-section">
+                  <div class="avatar-wrapper">
+                    <img
+                      id="profile-avatar"
+                      src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
+                      alt="avatar"
+                    />
+                    <button
+                      id="change-avatar-btn"
+                      class="avatar-overlay"
+                      data-action="changeAvatar"
+                    >
+                      <i class="fas fa-camera"></i>
+                    </button>
+                  </div>
+                  <input
+                    type="file"
+                    id="avatar-input"
+                    accept="image/*"
+                    class="hidden"
+                  />
+                </div>
+                <div class="profile-info">
+                  <h2 id="profile-username">User</h2>
+                  <p id="profile-email">user@example.com</p>
+                  <div class="profile-stats">
+                    <div class="profile-stat">
+                      <span id="profile-level" class="stat-value">1</span>
+                      <span class="stat-label" data-i18n="profile.level"
+                        >المستوى</span
+                      >
+                    </div>
+                    <div class="profile-stat">
+                      <span id="profile-xp" class="stat-value">0</span>
+                      <span class="stat-label" data-i18n="profile.xp"
+                        >الخبرة</span
+                      >
+                    </div>
+                    <div class="profile-stat">
+                      <span id="profile-gold" class="stat-value">0</span>
+                      <span class="stat-label" data-i18n="profile.gold"
+                        >الذهب</span
+                      >
+                    </div>
+                    <div class="profile-stat">
+                      <span id="profile-friends" class="stat-value">0</span>
+                      <span class="stat-label" data-i18n="profile.friends"
+                        >الأصدقاء</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- My Skills Section -->
+              <div class="profile-section">
+                <div class="section-header">
+                  <h3 data-i18n="profile.mySkills">مهاراتي</h3>
+                </div>
+                <div id="profile-skills-list" class="profile-items-list"></div>
+              </div>
+
+              <!-- My Quests Section -->
+              <div class="profile-section">
+                <div class="section-header">
+                  <h3 data-i18n="profile.myQuests">مهامي</h3>
+                </div>
+                <div id="profile-quests-list" class="profile-items-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Settings Page -->
+          <section id="settings" class="page">
+            <div class="settings-container">
+              <div class="settings-card">
+                <h3 data-i18n="settings.language">اللغة</h3>
+                <div class="setting-row">
+                  <label data-i18n="settings.selectLanguage">اختر اللغة</label>
+                  <select id="language-select" data-action="changeLanguage">
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-card">
+                <h3 data-i18n="settings.account">الحساب</h3>
+                <div class="setting-row">
+                  <button
+                    class="btn btn-danger"
+                    data-action="deleteAccount"
+                    data-i18n="settings.deleteAccount"
+                  >
+                    حذف الحساب
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
 
     <!-- Edit Skill Modal -->
     <div id="edit-skill-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-i18n="skills.editTitle">تعديل المهارة</h3>
-                <button class="modal-close" data-action="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="edit-skill-id">
-                <div class="form-group">
-                    <label data-i18n="skills.name">الاسم</label>
-                    <input type="text" id="edit-skill-name">
-                </div>
-                <div class="form-group">
-                    <label data-i18n="skills.description">الوصف</label>
-                    <textarea id="edit-skill-description"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-action="closeModal" data-i18n="common.cancel">إلغاء</button>
-                <button class="btn btn-primary" data-action="saveSkillEdit" data-i18n="common.save">حفظ</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 data-i18n="skills.editTitle">تعديل المهارة</h3>
+          <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-skill-id" />
+          <div class="form-group">
+            <label data-i18n="skills.name">الاسم</label>
+            <input type="text" id="edit-skill-name" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="skills.description">الوصف</label>
+            <textarea id="edit-skill-description"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            data-action="closeModal"
+            data-i18n="common.cancel"
+          >
+            إلغاء
+          </button>
+          <button
+            class="btn btn-primary"
+            data-action="saveSkillEdit"
+            data-i18n="common.save"
+          >
+            حفظ
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Edit Quest Modal -->
     <div id="edit-quest-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-i18n="quests.editTitle">تعديل المهمة</h3>
-                <button class="modal-close" data-action="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="edit-quest-id">
-                <div class="form-group">
-                    <label data-i18n="quests.title">العنوان</label>
-                    <input type="text" id="edit-quest-title">
-                </div>
-                <div class="form-group">
-                    <label data-i18n="quests.description">الوصف</label>
-                    <textarea id="edit-quest-description"></textarea>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="quests.xpReward">مكافأة الخبرة</label>
-                    <input type="number" id="edit-quest-xp" min="1">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-action="closeModal" data-i18n="common.cancel">إلغاء</button>
-                <button class="btn btn-primary" data-action="saveQuestEdit" data-i18n="common.save">حفظ</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 data-i18n="quests.editTitle">تعديل المهمة</h3>
+          <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-quest-id" />
+          <div class="form-group">
+            <label data-i18n="quests.title">العنوان</label>
+            <input type="text" id="edit-quest-title" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="quests.description">الوصف</label>
+            <textarea id="edit-quest-description"></textarea>
+          </div>
+          <div class="form-group">
+            <label data-i18n="quests.xpReward">مكافأة الخبرة</label>
+            <input type="number" id="edit-quest-xp" min="1" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            data-action="closeModal"
+            data-i18n="common.cancel"
+          >
+            إلغاء
+          </button>
+          <button
+            class="btn btn-primary"
+            data-action="saveQuestEdit"
+            data-i18n="common.save"
+          >
+            حفظ
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Add Quest Modal -->
     <div id="add-quest-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-i18n="quests.addTitle">إضافة مهمة جديدة</h3>
-                <button class="modal-close" data-action="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label data-i18n="quests.title">العنوان</label>
-                    <input type="text" id="new-quest-title">
-                </div>
-                <div class="form-group">
-                    <label data-i18n="quests.description">الوصف</label>
-                    <textarea id="new-quest-description"></textarea>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="quests.xpReward">مكافأة الخبرة</label>
-                    <input type="number" id="new-quest-xp" value="10" min="1">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-action="closeModal" data-i18n="common.cancel">إلغاء</button>
-                <button class="btn btn-primary" data-action="saveNewQuest" data-i18n="common.add">إضافة</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 data-i18n="quests.addTitle">إضافة مهمة جديدة</h3>
+          <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label data-i18n="quests.title">العنوان</label>
+            <input type="text" id="new-quest-title" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="quests.description">الوصف</label>
+            <textarea id="new-quest-description"></textarea>
+          </div>
+          <div class="form-group">
+            <label data-i18n="quests.xpReward">مكافأة الخبرة</label>
+            <input type="number" id="new-quest-xp" value="10" min="1" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            data-action="closeModal"
+            data-i18n="common.cancel"
+          >
+            إلغاء
+          </button>
+          <button
+            class="btn btn-primary"
+            data-action="saveNewQuest"
+            data-i18n="common.add"
+          >
+            إضافة
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Scripts -->
@@ -363,5 +515,6 @@
     <script type="module" src="js/friends.js"></script>
     <script type="module" src="js/ui.js"></script>
     <script type="module" src="js/app.js"></script>
-</body>
+    <script type="module" src="js/utils.js"></script>
+  </body>
 </html>

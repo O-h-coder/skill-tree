@@ -1,47 +1,135 @@
-// ===== Quests Module =====
+// ===== Friends Module =====
 import { getSupabase } from "./supabase.js";
 import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
-import { notify } from "./ui.js";
-import { updateStats, loadUserStats } from "./user.js";
+import { notify } from "./utils.js";
 
-let currentQuests = [];
-let editingQuestId = null;
+let currentFriends = [];
+let currentRequests = [];
+let searchResults = [];
 
-export async function loadQuests() {
+export async function loadFriends() {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
 
+  // Get accepted friendships
   const { data, error } = await supabase
-    .from("quests")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .from("friendships")
+    .select(
+      `
+            id,
+            user_id,
+            friend_id,
+            status,
+            created_at,
+            profiles!friendships_friend_id_fkey(id, username, email, avatar_url),
+            requester:profiles!friendships_user_id_fkey(id, username, email, avatar_url)
+        `,
+    )
+    .eq("status", "accepted")
+    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
   if (error) {
-    console.error("Load quests error:", error);
+    console.error("Load friends error:", error);
     return [];
   }
 
-  currentQuests = data || [];
-  return currentQuests;
+  // Normalize friend data
+  currentFriends = (data || []).map((f) => {
+    const isUserSender = f.user_id === user.id;
+    const friendProfile = isUserSender ? f.profiles : f.requester;
+    return {
+      id: f.id,
+      friendship_id: f.id,
+      friend_id: isUserSender ? f.friend_id : f.user_id,
+      username: friendProfile?.username || "Unknown",
+      email: friendProfile?.email || "",
+      avatar_url: friendProfile?.avatar_url,
+      created_at: f.created_at,
+    };
+  });
+
+  return currentFriends;
 }
 
-export async function addQuest(title, description, xpReward) {
+export async function loadFriendRequests() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  // Get pending requests where current user is the recipient (friend_id)
+  const { data, error } = await supabase
+    .from("friendships")
+    .select(
+      `
+            id,
+            user_id,
+            friend_id,
+            status,
+            created_at,
+            requester:profiles!friendships_user_id_fkey(id, username, email, avatar_url)
+        `,
+    )
+    .eq("status", "pending")
+    .eq("friend_id", user.id);
+
+  if (error) {
+    console.error("Load requests error:", error);
+    return [];
+  }
+
+  currentRequests = (data || []).map((r) => ({
+    id: r.id,
+    requester_id: r.user_id,
+    username: r.requester?.username || "Unknown",
+    email: r.requester?.email || "",
+    avatar_url: r.requester?.avatar_url,
+    created_at: r.created_at,
+  }));
+
+  return currentRequests;
+}
+
+export async function sendFriendRequest(friendId) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
+  if (friendId === user.id) {
+    return { error: new Error("Cannot send request to yourself") };
+  }
+
+  // Check if already friends or request exists
+  const { data: existing, error: checkError } = await supabase
+    .from("friendships")
+    .select("*")
+    .or(
+      `and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`,
+    )
+    .maybeSingle();
+
+  if (checkError) {
+    console.error("Check existing error:", checkError);
+  }
+
+  if (existing) {
+    if (existing.status === "accepted") {
+      return { error: new Error("Already friends") };
+    }
+    if (existing.status === "pending") {
+      return { error: new Error("Request already sent") };
+    }
+  }
+
+  // Send request
   const { data, error } = await supabase
-    .from("quests")
+    .from("friendships")
     .insert([
       {
         user_id: user.id,
-        title: title.trim(),
-        description: description?.trim() || "",
-        xp_reward: parseInt(xpReward) || 10,
-        completed: false,
+        friend_id: friendId,
+        status: "pending",
         created_at: new Date().toISOString(),
       },
     ])
@@ -49,164 +137,162 @@ export async function addQuest(title, description, xpReward) {
     .single();
 
   if (error) {
-    console.error("Add quest error:", error);
+    console.error("Send request error:", error);
     return { error };
   }
 
-  notify(t("quests.addSuccess"), "success");
-  await loadQuests();
-  renderQuests();
-
+  notify(t("friends.requestSent"), "success");
   return { data, error: null };
 }
 
-export async function editQuest(questId, updates) {
+export async function acceptFriendRequest(requestId) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
   const { data, error } = await supabase
-    .from("quests")
-    .update({
-      title: updates.title?.trim(),
-      description: updates.description?.trim(),
-      xp_reward: parseInt(updates.xp_reward) || 10,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", questId)
-    .eq("user_id", user.id)
+    .from("friendships")
+    .update({ status: "accepted", accepted_at: new Date().toISOString() })
+    .eq("id", requestId)
+    .eq("friend_id", user.id)
     .select()
     .single();
 
   if (error) {
-    console.error("Edit quest error:", error);
+    console.error("Accept request error:", error);
     return { error };
   }
 
-  notify(t("quests.editSuccess"), "success");
-  await loadQuests();
-  renderQuests();
+  notify(t("friends.requestAccepted"), "success");
+  await loadFriendRequests();
+  await loadFriends();
+  renderFriends();
+  renderRequests();
+  updateBadges();
 
   return { data, error: null };
 }
 
-export async function deleteQuest(questId) {
+export async function declineFriendRequest(requestId) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
   const { error } = await supabase
-    .from("quests")
+    .from("friendships")
     .delete()
-    .eq("id", questId)
-    .eq("user_id", user.id);
+    .eq("id", requestId)
+    .eq("friend_id", user.id);
 
   if (error) {
-    console.error("Delete quest error:", error);
+    console.error("Decline request error:", error);
     return { error };
   }
 
-  notify(t("quests.deleteSuccess"), "success");
-  await loadQuests();
-  renderQuests();
+  notify(t("friends.requestDeclined"), "success");
+  await loadFriendRequests();
+  renderRequests();
+  updateBadges();
 
   return { error: null };
 }
 
-export async function completeQuest(questId) {
+export async function removeFriend(friendshipId) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  const quest = currentQuests.find((q) => q.id === questId);
-  if (!quest) return { error: new Error("Quest not found") };
+  const { error } = await supabase
+    .from("friendships")
+    .delete()
+    .eq("id", friendshipId);
 
-  if (quest.completed) {
-    return { error: new Error("Quest already completed") };
+  if (error) {
+    console.error("Remove friend error:", error);
+    return { error };
   }
 
-  // Mark quest as completed
-  const { error: updateError } = await supabase
-    .from("quests")
-    .update({
-      completed: true,
-      completed_at: new Date().toISOString(),
-    })
-    .eq("id", questId)
-    .eq("user_id", user.id);
-
-  if (updateError) {
-    console.error("Complete quest error:", updateError);
-    return { error: updateError };
-  }
-
-  // Add XP to user stats
-  const stats = await loadUserStats();
-  const newXp = (stats?.xp || 0) + (quest.xp_reward || 10);
-  const newLevel = Math.floor(newXp / 100) + 1;
-
-  await updateStats({
-    xp: newXp,
-    level: newLevel,
-  });
-
-  // Add activity history
-  await supabase.from("activity_history").insert([
-    {
-      user_id: user.id,
-      type: "quest_complete",
-      title: quest.title,
-      description: `Completed quest: ${quest.title} (+${quest.xp_reward} XP)`,
-      created_at: new Date().toISOString(),
-    },
-  ]);
-
-  notify(t("notifications.questComplete", { title: quest.title }), "success");
-
-  await loadQuests();
-  renderQuests();
-
-  // Refresh user stats display
-  const headerXp = document.getElementById("user-xp");
-  const headerLevel = document.getElementById("user-level");
-  if (headerXp) headerXp.textContent = `${newXp} XP`;
-  if (headerLevel) headerLevel.textContent = `Level ${newLevel}`;
+  notify(t("friends.removed"), "success");
+  await loadFriends();
+  renderFriends();
 
   return { error: null };
 }
 
-export function renderQuests() {
-  const list = document.getElementById("quests-list");
-  const completedSection = document.getElementById("completed-quests");
-  const completedList = document.getElementById("completed-list");
+export async function searchUsers(query) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  if (!query || query.trim().length < 2) {
+    searchResults = [];
+    renderSearchResults();
+    return [];
+  }
+
+  const searchTerm = query.trim().toLowerCase();
+
+  // Search by username or email
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, email, avatar_url")
+    .or(`username.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+    .neq("id", user.id)
+    .limit(20);
+
+  if (error) {
+    console.error("Search error:", error);
+    return [];
+  }
+
+  // Check friendship status for each
+  const { data: friendships } = await supabase
+    .from("friendships")
+    .select("*")
+    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+  searchResults = (data || []).map((profile) => {
+    const existing = friendships?.find(
+      (f) =>
+        (f.user_id === user.id && f.friend_id === profile.id) ||
+        (f.user_id === profile.id && f.friend_id === user.id),
+    );
+
+    return {
+      ...profile,
+      friendshipStatus: existing?.status || null,
+      friendshipId: existing?.id || null,
+    };
+  });
+
+  renderSearchResults();
+  return searchResults;
+}
+
+export function renderFriends() {
+  const list = document.getElementById("friends-list");
+  const noFriends = document.getElementById("no-friends");
 
   if (!list) return;
 
-  const activeQuests = currentQuests.filter((q) => !q.completed);
-  const completedQuests = currentQuests.filter((q) => q.completed);
-
-  // Render active quests
-  if (activeQuests.length === 0) {
-    list.innerHTML = `<div class="empty-state">${t("quests.noQuests")}</div>`;
+  if (currentFriends.length === 0) {
+    list.innerHTML = "";
+    if (noFriends) noFriends.classList.remove("hidden");
   } else {
-    list.innerHTML = activeQuests
+    if (noFriends) noFriends.classList.add("hidden");
+    list.innerHTML = currentFriends
       .map(
-        (quest) => `
-            <div class="quest-card" data-quest-id="${quest.id}">
-                <button class="quest-checkbox" data-action="completeQuest" data-id="${quest.id}">
-                    <i class="fas fa-check"></i>
-                </button>
-                <div class="quest-content">
-                    <h4 class="quest-title">${quest.title}</h4>
-                    <p class="quest-description">${quest.description || ""}</p>
-                </div>
-                <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} XP</span>
-                <div class="quest-actions">
-                    <button class="btn-edit-quest" data-action="editQuest" data-id="${quest.id}">
-                        <i class="fas fa-pen"></i>
+        (friend) => `
+            <div class="friend-card" data-friend-id="${friend.friend_id}">
+                <img class="friend-avatar" src="${friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.username)}&background=6366f1&color=fff`}" alt="${friend.username}">
+                <h4 class="friend-name">${friend.username}</h4>
+                <p class="friend-level">${friend.email}</p>
+                <div class="friend-actions">
+                    <button class="btn-view-friend" data-action="viewFriend" data-id="${friend.friend_id}">
+                        <i class="fas fa-eye"></i> ${t("common.edit")}
                     </button>
-                    <button class="btn-delete-quest" data-action="deleteQuest" data-id="${quest.id}">
-                        <i class="fas fa-trash"></i>
+                    <button class="btn-remove-friend" data-action="removeFriend" data-id="${friend.friendship_id}">
+                        <i class="fas fa-user-minus"></i> ${t("friends.remove")}
                     </button>
                 </div>
             </div>
@@ -214,107 +300,106 @@ export function renderQuests() {
       )
       .join("");
   }
+}
 
-  // Render completed quests
-  if (completedList) {
-    if (completedQuests.length === 0) {
-      if (completedSection) completedSection.classList.add("hidden");
-    } else {
-      if (completedSection) completedSection.classList.remove("hidden");
-      completedList.innerHTML = completedQuests
-        .map(
-          (quest) => `
-                <div class="quest-card" data-quest-id="${quest.id}">
-                    <div class="quest-checkbox completed">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <div class="quest-content">
-                        <h4 class="quest-title completed">${quest.title}</h4>
-                        <p class="quest-description">${quest.description || ""}</p>
-                    </div>
-                    <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} XP</span>
-                    <div class="quest-actions">
-                        <button class="btn-delete-quest" data-action="deleteQuest" data-id="${quest.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+export function renderRequests() {
+  const list = document.getElementById("requests-list");
+  const noRequests = document.getElementById("no-requests");
+
+  if (!list) return;
+
+  if (currentRequests.length === 0) {
+    list.innerHTML = "";
+    if (noRequests) noRequests.classList.remove("hidden");
+  } else {
+    if (noRequests) noRequests.classList.add("hidden");
+    list.innerHTML = currentRequests
+      .map(
+        (req) => `
+            <div class="request-card" data-request-id="${req.id}">
+                <img class="request-avatar" src="${req.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.username)}&background=6366f1&color=fff`}" alt="${req.username}">
+                <div class="request-info">
+                    <h4 class="request-name">${req.username}</h4>
+                    <p class="request-email">${req.email}</p>
                 </div>
-            `,
-        )
-        .join("");
-    }
+                <div class="request-actions">
+                    <button class="btn-accept-request" data-action="acceptRequest" data-id="${req.id}">
+                        <i class="fas fa-check"></i> ${t("friends.accept")}
+                    </button>
+                    <button class="btn-decline-request" data-action="declineRequest" data-id="${req.id}">
+                        <i class="fas fa-times"></i> ${t("friends.decline")}
+                    </button>
+                </div>
+            </div>
+        `,
+      )
+      .join("");
   }
 }
 
-export function openEditQuestModal(questId) {
-  const quest = currentQuests.find((q) => q.id === questId);
-  if (!quest) return;
+export function renderSearchResults() {
+  const container = document.getElementById("search-results");
+  if (!container) return;
 
-  editingQuestId = questId;
-
-  const modal = document.getElementById("edit-quest-modal");
-  const titleInput = document.getElementById("edit-quest-title");
-  const descInput = document.getElementById("edit-quest-description");
-  const xpInput = document.getElementById("edit-quest-xp");
-
-  if (modal) modal.classList.remove("hidden");
-  if (titleInput) titleInput.value = quest.title;
-  if (descInput) descInput.value = quest.description || "";
-  if (xpInput) xpInput.value = quest.xp_reward;
-}
-
-export function openAddQuestModal() {
-  const modal = document.getElementById("add-quest-modal");
-  if (modal) modal.classList.remove("hidden");
-
-  // Clear inputs
-  const titleInput = document.getElementById("new-quest-title");
-  const descInput = document.getElementById("new-quest-description");
-  const xpInput = document.getElementById("new-quest-xp");
-
-  if (titleInput) titleInput.value = "";
-  if (descInput) descInput.value = "";
-  if (xpInput) xpInput.value = "10";
-}
-
-export async function saveQuestEdit() {
-  if (!editingQuestId) return;
-
-  const titleInput = document.getElementById("edit-quest-title");
-  const descInput = document.getElementById("edit-quest-description");
-  const xpInput = document.getElementById("edit-quest-xp");
-
-  if (!titleInput?.value.trim()) {
-    notify(t("quests.titleRequired"), "error");
+  if (searchResults.length === 0) {
+    container.innerHTML = `<div class="empty-state">${t("friends.noResults")}</div>`;
     return;
   }
 
-  await editQuest(editingQuestId, {
-    title: titleInput.value,
-    description: descInput.value,
-    xp_reward: xpInput.value,
+  container.innerHTML = searchResults
+    .map((user) => {
+      let buttonHtml = "";
+      if (user.friendshipStatus === "accepted") {
+        buttonHtml = `<button class="btn-add-friend sent" disabled><i class="fas fa-user-check"></i> ${t("friends.friend")}</button>`;
+      } else if (user.friendshipStatus === "pending") {
+        buttonHtml = `<button class="btn-add-friend sent" disabled><i class="fas fa-clock"></i> ${t("friends.requestSent")}</button>`;
+      } else {
+        buttonHtml = `<button class="btn-add-friend" data-action="sendRequest" data-id="${user.id}"><i class="fas fa-user-plus"></i> ${t("friends.sendRequest")}</button>`;
+      }
+
+      return `
+            <div class="search-result-card" data-user-id="${user.id}">
+                <img class="friend-avatar" src="${user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=6366f1&color=fff`}" alt="${user.username}">
+                <h4 class="friend-name">${user.username}</h4>
+                <p class="friend-email">${user.email}</p>
+                ${buttonHtml}
+            </div>
+        `;
+    })
+    .join("");
+}
+
+export async function updateBadges() {
+  const requestsBadge = document.getElementById("requests-badge");
+  const friendsBadge = document.getElementById("friends-badge");
+  const notificationBadge = document.getElementById("notification-badge");
+
+  await loadFriendRequests();
+
+  const requestCount = currentRequests.length;
+
+  if (requestsBadge) {
+    requestsBadge.textContent = requestCount;
+    requestsBadge.classList.toggle("hidden", requestCount === 0);
+  }
+
+  if (friendsBadge) {
+    friendsBadge.classList.toggle("hidden", requestCount === 0);
+    friendsBadge.textContent = requestCount;
+  }
+
+  if (notificationBadge) {
+    notificationBadge.classList.toggle("hidden", requestCount === 0);
+    notificationBadge.textContent = requestCount;
+  }
+}
+
+export function switchTab(tabName) {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tabName);
   });
 
-  closeModal("edit-quest-modal");
-  editingQuestId = null;
-}
-
-export async function saveNewQuest() {
-  const titleInput = document.getElementById("new-quest-title");
-  const descInput = document.getElementById("new-quest-description");
-  const xpInput = document.getElementById("new-quest-xp");
-
-  if (!titleInput?.value.trim()) {
-    notify(t("quests.titleRequired"), "error");
-    return;
-  }
-
-  await addQuest(titleInput.value, descInput.value, xpInput.value || 10);
-
-  closeModal("add-quest-modal");
-}
-
-export function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add("hidden");
+  document.querySelectorAll(".tab-content").forEach((content) => {
+    content.classList.toggle("active", content.id === `${tabName}-tab`);
+  });
 }

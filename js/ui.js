@@ -1,50 +1,23 @@
-// ===== UI Module =====
+// ===== UI Module - Notification Panel =====
 import { t } from "./i18n.js";
 import { getSupabase } from "./supabase.js";
 import { getCurrentUser } from "./auth.js";
-import { loadFriendRequests } from "./friends.js";
+import { notify } from "./utils.js";
 
-// ===== Toast Notifications =====
-export function notify(message, type = "info") {
-  const container = document.getElementById("toast-container");
-  if (!container) return;
-
-  const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
-
-  const icons = {
-    success: "fa-check-circle",
-    error: "fa-exclamation-circle",
-    warning: "fa-exclamation-triangle",
-    info: "fa-info-circle",
-  };
-
-  toast.innerHTML = `
-        <i class="fas ${icons[type] || icons.info}"></i>
-        <span>${message}</span>
-    `;
-
-  container.appendChild(toast);
-
-  // Auto remove after 3 seconds
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateX(-20px)";
-    toast.style.transition = "all 0.3s ease";
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-// ===== Notification Panel =====
 let notifications = [];
 let isNotificationsOpen = false;
+let _loadFriendRequestsFn = null;
+
+export function setLoadFriendRequestsFn(fn) {
+  _loadFriendRequestsFn = fn;
+}
 
 export async function loadNotifications() {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
 
-  // Load from activity_history (recent items) + pending friend requests
+  // Load from activity_history
   const { data: activities, error: actError } = await supabase
     .from("activity_history")
     .select("*")
@@ -54,18 +27,20 @@ export async function loadNotifications() {
 
   if (actError) console.error("Load activities error:", actError);
 
-  // Load pending friend requests as notifications
-  const requests = await loadFriendRequests();
-
-  const requestNotifications = requests.map((r) => ({
-    id: `req_${r.id}`,
-    type: "friend-request",
-    title: t("notifications.friendRequest", { name: r.username }),
-    message: r.email,
-    time: r.created_at,
-    read: false,
-    data: r,
-  }));
+  // Load pending friend requests
+  let requestNotifications = [];
+  if (_loadFriendRequestsFn) {
+    const requests = await _loadFriendRequestsFn();
+    requestNotifications = (requests || []).map((r) => ({
+      id: `req_${r.id}`,
+      type: "friend-request",
+      title: t("notifications.friendRequest", { name: r.username }),
+      message: r.email,
+      time: r.created_at,
+      read: false,
+      data: r,
+    }));
+  }
 
   const activityNotifications = (activities || []).map((a) => ({
     id: `act_${a.id}`,
@@ -165,23 +140,13 @@ function getTimeAgo(dateString) {
   const now = new Date();
   const seconds = Math.floor((now - date) / 1000);
 
-  if (seconds < 60) return t("time.justNow");
+  if (seconds < 60) return "now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   return `${days}d`;
-}
-
-// ===== Modal Helpers =====
-export function closeAllModals() {
-  document.querySelectorAll(".modal").forEach((m) => m.classList.add("hidden"));
-}
-
-export function showLoading(show = true) {
-  const overlay = document.getElementById("loading-overlay");
-  if (overlay) overlay.classList.toggle("hidden", !show);
 }
 
 // ===== Click Outside to Close =====
