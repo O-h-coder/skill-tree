@@ -48,27 +48,25 @@ function toggleAuthMode() {
     } else {
       switchText.innerHTML = `<span>${t("login.haveAccount")}</span> <button id="switch-btn" class="text-btn" data-action="switchAuth">${t("login.loginLink")}</button>`;
     }
-    // Event listener handled by delegation in DOMContentLoaded, no need to re-attach
   }
 }
 
 /**
- * Check if an account exists by querying the profiles table.
- * Returns: true (exists), false (not found), null (unknown/error — likely RLS blocked).
+ * Check if an account exists using Supabase RPC function.
+ * This bypasses RLS by using SECURITY DEFINER on the server side.
+ * Returns: true (exists), false (not found), null (error).
  */
 async function checkAccountExists(email) {
   const supabase = getSupabase();
   if (!supabase) return null;
 
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("check_account_exists", {
+      p_email: email,
+    });
 
     if (error) {
-      console.error("Account check error:", error);
+      console.error("Account check RPC error:", error);
       return null;
     }
 
@@ -95,10 +93,7 @@ async function handleLogin(e) {
 
   if (exists === false) {
     showLoading(false);
-    notify(
-      t("login.accountNotFound") || "Account not found. Please register first.",
-      "error",
-    );
+    notify(t("login.accountNotFound"), "error");
     return;
   }
 
@@ -191,8 +186,6 @@ function toggleLanguage() {
     } else {
       switchText.innerHTML = `<span>${t("login.haveAccount")}</span> <button id="switch-btn" class="text-btn" data-action="switchAuth">${t("login.loginLink")}</button>`;
     }
-    const switchBtn = document.getElementById("switch-btn");
-    if (switchBtn) switchBtn.addEventListener("click", toggleAuthMode);
   }
 }
 
