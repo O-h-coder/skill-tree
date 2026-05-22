@@ -1,290 +1,323 @@
-// File: js/skills.js
-/**
- * skills.js — إدارة المهارات + UI شجرة المهارات
- */
-
+// ===== User Module =====
 import { getSupabase } from "./supabase.js";
-import { getCurrentUserId } from "./auth.js";
-import {
-  addXP,
-  getCachedUserData,
-  fetchUserData,
-  getUserLevel,
-  getUserTitle,
-} from "./user.js";
-import { showToast, showModal } from "./ui.js";
+import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
+import { notify } from "./ui.js";
 
-// ===== DATA =====
+let currentProfile = null;
 
-export async function fetchUserSkills() {
-  const userId = getCurrentUserId();
-  if (!userId) return { skills: [], error: "Not authenticated" };
-  const sb = await getSupabase();
-  try {
-    const { data, error } = await sb
-      .from("skills")
-      .select("*")
-      .eq("user_id", userId)
-      .order("xp_required", { ascending: true });
-    if (error) throw error;
-    return { skills: data || [], error: null };
-  } catch (error) {
-    return { skills: [], error: error.message };
-  }
-}
+export async function loadUserProfile() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return null;
 
-export async function addSkill({ name, description, icon, xp_required }) {
-  const userId = getCurrentUserId();
-  if (!userId) return { skill: null, error: "Not authenticated" };
-  if (!name || name.trim().length < 2)
-    return { skill: null, error: t("skillNameRequired") };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
 
-  const sb = await getSupabase();
-  try {
-    const { data, error } = await sb
-      .from("skills")
-      .insert({
-        user_id: userId,
-        name: name.trim(),
-        description: description?.trim() || "",
-        icon: icon || "fa-star",
-        xp_required: xp_required || 100,
-        unlocked: false,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    await updateSkillsCount();
-    return { skill: data, error: null };
-  } catch (error) {
-    return { skill: null, error: error.message };
-  }
-}
-
-export async function unlockSkill(skillId) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: "Not authenticated" };
-  const sb = await getSupabase();
-
-  try {
-    const { data: skill, error: sErr } = await sb
-      .from("skills")
-      .select("*")
-      .eq("id", skillId)
-      .eq("user_id", userId)
-      .single();
-    if (sErr || !skill) return { error: t("failedLoadSkills") };
-    if (skill.unlocked) return { error: t("skillUnlocked") };
-
-    // FIX: Instant unlock without XP deduction
-    const { data, error } = await sb
-      .from("skills")
-      .update({ unlocked: true, unlocked_at: new Date().toISOString() })
-      .eq("id", skillId)
-      .eq("user_id", userId)
-      .select()
-      .single();
-    if (error) throw error;
-
-    await updateSkillsCount();
-    return { skill: data, error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-export async function deleteSkill(skillId) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: "Not authenticated" };
-  const sb = await getSupabase();
-  try {
-    const { error } = await sb
-      .from("skills")
-      .delete()
-      .eq("id", skillId)
-      .eq("user_id", userId);
-    if (error) throw error;
-    await updateSkillsCount();
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function updateSkillsCount() {
-  const userId = getCurrentUserId();
-  if (!userId) return;
-  const sb = await getSupabase();
-  const { data: all } = await sb
-    .from("skills")
-    .select("unlocked")
-    .eq("user_id", userId);
-  const unlocked = all?.filter((s) => s.unlocked).length || 0;
-  const total = all?.length || 0;
-  await sb
-    .from("user_stats")
-    .update({
-      skills_unlocked: unlocked,
-      total_skills: total,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-}
-
-// ===== UI: Skill Tree Page =====
-
-export async function renderSkillTreePage() {
-  const container = document.getElementById("skillTreeContainer");
-  const progressText = document.getElementById("treeProgressText");
-  const progressBar = document.getElementById("treeProgressBar");
-  const rankBadge = document.getElementById("currentRankBadge");
-
-  if (!container) return;
-
-  const { skills, error } = await fetchUserSkills();
   if (error) {
-    showToast(error, "error");
-    return;
+    console.error("Load profile error:", error);
+    return null;
   }
 
-  const userLevel = getUserLevel();
-  const unlockedCount = skills.filter((s) => s.unlocked).length;
-  const totalCount = skills.length;
-  const progressPercent =
-    totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
+  currentProfile = data;
+  return data;
+}
 
-  if (progressText)
-    progressText.textContent = `${unlockedCount} / ${totalCount} ${t("skillsUnlocked")}`;
-  if (progressBar) progressBar.style.width = `${progressPercent}%`;
-  if (rankBadge) rankBadge.textContent = getUserTitle();
+export async function loadUserStats() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return null;
 
-  if (!skills.length) {
-    container.innerHTML = `
-      <div class="skill-tree-empty">
-        <i class="fas fa-seedling"></i>
-        <h3>${t("skillsEmptyTitle")}</h3>
-        <p>${t("skillsEmptyDesc")}</p>
-      </div>
-    `;
-    return;
+  const { data, error } = await supabase
+    .from("user_stats")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Load stats error:", error);
+    return null;
   }
 
-  // FIX: All skills start as locked, click any to unlock instantly
-  let html = '<div class="skill-nodes-grid">';
+  return data;
+}
 
-  skills.forEach((skill) => {
-    const status = skill.unlocked ? "unlocked" : "locked";
-    html += renderSkillNode(skill, status);
-  });
+export async function updateProfile(updates) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  html += "</div>";
-  container.innerHTML = html;
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", user.id)
+    .select()
+    .single();
 
-  container.querySelectorAll(".skill-node.locked").forEach((node) => {
-    node.addEventListener("click", async () => {
-      const skillId = node.dataset.skillId;
-      const { error: unlockError, skill } = await unlockSkill(skillId);
-      if (unlockError) {
-        showToast(unlockError, "error");
-      } else {
-        showToast(`${t("skillUnlocked")} ${skill.name}`, "success");
-        showModal(
-          t("skillUnlocked"),
-          `${t("newSkillUnlocked")}: ${skill.name}`,
-          "fa-unlock",
-        );
-        await renderSkillTreePage();
-        window.dispatchEvent(
-          new CustomEvent("skillunlocked", { detail: { skill } }),
-        );
-      }
+  if (error) return { error };
+  currentProfile = data;
+  return { data, error: null };
+}
+
+export async function updateStats(updates) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
+
+  const { data, error } = await supabase
+    .from("user_stats")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+export async function uploadAvatar(file) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
+
+  if (!file || file.size === 0) {
+    return { error: new Error("No file selected") };
+  }
+
+  // Validate file type
+  if (!file.type.startsWith("image/")) {
+    return { error: new Error("Please select an image file") };
+  }
+
+  // Validate file size (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    return { error: new Error("Image size must be less than 2MB") };
+  }
+
+  const fileExt = file.name.split(".").pop().toLowerCase();
+  const allowedExts = ["jpg", "jpeg", "png", "gif", "webp"];
+  if (!allowedExts.includes(fileExt)) {
+    return { error: new Error("Invalid image format") };
+  }
+
+  const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+  const filePath = `avatars/${fileName}`;
+
+  // Upload to storage
+  const { error: uploadError } = await supabase.storage
+    .from("profiles")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: file.type,
     });
-  });
+
+  if (uploadError) {
+    console.error("Upload error:", uploadError);
+    return { error: uploadError };
+  }
+
+  // Get public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("profiles").getPublicUrl(filePath);
+
+  // Update profile with new avatar URL
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: publicUrl })
+    .eq("id", user.id);
+
+  if (updateError) {
+    console.error("Update profile error:", updateError);
+    return { error: updateError };
+  }
+
+  return { data: { url: publicUrl }, error: null };
 }
 
-function renderSkillNode(skill, status) {
-  const icon = skill.icon || "fa-star";
-  const statusText =
-    status === "unlocked"
-      ? t("unlocked")
-      : status === "available"
-        ? t("available")
-        : t("locked");
-  const statusIcon =
-    status === "unlocked"
-      ? "fa-check-circle"
-      : status === "available"
-        ? "fa-lock-open"
-        : "fa-lock";
+export async function renderProfilePage() {
+  const profile = await loadUserProfile();
+  const stats = await loadUserStats();
 
-  return `
-    <div class="skill-node ${status}" data-skill-id="${skill.id}">
-      <div class="node-glow"></div>
-      <div class="skill-node-inner">
-        <div class="node-icon"><i class="fas ${icon}"></i></div>
-        <div class="node-info">
-          <h4>${escapeHtml(skill.name)}</h4>
-          <p>${escapeHtml(skill.description || "")}</p>
-        </div>
-        <div class="node-meta">
-          <span class="node-status ${status}"><i class="fas ${statusIcon}"></i> ${statusText}</span>
-          <span class="node-xp"><i class="fas fa-bolt"></i> ${skill.xp_required} XP</span>
-        </div>
-      </div>
-    </div>
-  `;
+  if (!profile) return;
+
+  // Update profile card
+  const avatarImg = document.getElementById("profile-avatar");
+  const headerAvatar = document.getElementById("header-avatar");
+
+  if (avatarImg) {
+    avatarImg.src =
+      profile.avatar_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || "User")}&background=6366f1&color=fff`;
+  }
+  if (headerAvatar) {
+    headerAvatar.src =
+      profile.avatar_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || "User")}&background=6366f1&color=fff`;
+  }
+
+  const usernameEl = document.getElementById("profile-username");
+  const headerUsername = document.getElementById("header-username");
+  const emailEl = document.getElementById("profile-email");
+
+  if (usernameEl) usernameEl.textContent = profile.username || "User";
+  if (headerUsername) headerUsername.textContent = profile.username || "User";
+  if (emailEl) emailEl.textContent = profile.email || "";
+
+  // Update stats
+  const levelEl = document.getElementById("profile-level");
+  const xpEl = document.getElementById("profile-xp");
+  const goldEl = document.getElementById("profile-gold");
+  const friendsEl = document.getElementById("profile-friends");
+
+  if (levelEl) levelEl.textContent = stats?.level || 1;
+  if (xpEl) xpEl.textContent = stats?.xp || 0;
+  if (goldEl) goldEl.textContent = stats?.gold || 0;
+
+  // Count friends
+  const friendCount = await getFriendCount();
+  if (friendsEl) friendsEl.textContent = friendCount;
+
+  // Update header stats
+  const headerLevel = document.getElementById("user-level");
+  const headerXp = document.getElementById("user-xp");
+  const headerGold = document.getElementById("user-gold");
+
+  if (headerLevel) headerLevel.textContent = `Level ${stats?.level || 1}`;
+  if (headerXp) headerXp.textContent = `${stats?.xp || 0} XP`;
+  if (headerGold) headerGold.textContent = `${stats?.gold || 0} Gold`;
 }
 
-// ===== UI: Skills List (for Profile) =====
+async function getFriendCount() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return 0;
 
-export function renderSkillsList(containerId, skills) {
-  const list = document.getElementById(containerId);
-  if (!list) return;
+  const { count, error } = await supabase
+    .from("friendships")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "accepted")
+    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
-  if (!skills || !skills.length) {
-    list.innerHTML = `<div class="skill-list-empty">${t("noSkills")}</div>`;
+  if (error) return 0;
+  return count || 0;
+}
+
+export async function loadProfileSkills() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  const { data, error } = await supabase
+    .from("user_skills")
+    .select("*, skills(*)")
+    .eq("user_id", user.id)
+    .eq("unlocked", true);
+
+  if (error) {
+    console.error("Load profile skills error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function loadProfileQuests() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  const { data, error } = await supabase
+    .from("quests")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("Load profile quests error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function renderProfileItems() {
+  const skills = await loadProfileSkills();
+  const quests = await loadProfileQuests();
+
+  // Render skills
+  const skillsList = document.getElementById("profile-skills-list");
+  if (skillsList) {
+    if (skills.length === 0) {
+      skillsList.innerHTML = `<div class="empty-state">${t("friends.noFriends").replace("أصدقاء", "مهارات")}</div>`;
+    } else {
+      skillsList.innerHTML = skills
+        .map(
+          (s) => `
+                <div class="profile-item" data-skill-id="${s.skill_id}">
+                    <div class="profile-item-icon skill"><i class="fas ${s.skills?.icon || "fa-star"}"></i></div>
+                    <div class="profile-item-content">
+                        <h4>${s.skills?.name || "Skill"}</h4>
+                        <p>${s.skills?.description || ""}</p>
+                    </div>
+                    <div class="profile-item-actions">
+                        <button class="btn-edit" data-action="editSkill" data-id="${s.skill_id}" title="${t("common.edit")}"><i class="fas fa-pen"></i></button>
+                        <button class="btn-delete" data-action="deleteSkill" data-id="${s.skill_id}" title="${t("common.delete")}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `,
+        )
+        .join("");
+    }
+  }
+
+  // Render quests
+  const questsList = document.getElementById("profile-quests-list");
+  if (questsList) {
+    if (quests.length === 0) {
+      questsList.innerHTML = `<div class="empty-state">${t("friends.noFriends").replace("أصدقاء", "مهام")}</div>`;
+    } else {
+      questsList.innerHTML = quests
+        .map(
+          (q) => `
+                <div class="profile-item" data-quest-id="${q.id}">
+                    <div class="profile-item-icon quest"><i class="fas fa-scroll"></i></div>
+                    <div class="profile-item-content">
+                        <h4>${q.title}</h4>
+                        <p>${q.description || ""} - <span style="color: var(--warning)">${q.xp_reward} XP</span></p>
+                    </div>
+                    <div class="profile-item-actions">
+                        <button class="btn-edit" data-action="editQuest" data-id="${q.id}" title="${t("common.edit")}"><i class="fas fa-pen"></i></button>
+                        <button class="btn-delete" data-action="deleteQuest" data-id="${q.id}" title="${t("common.delete")}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `,
+        )
+        .join("");
+    }
+  }
+}
+
+export async function handleAvatarChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const { data, error } = await uploadAvatar(file);
+
+  if (error) {
+    notify(error.message, "error");
     return;
   }
 
-  list.innerHTML = skills
-    .map(
-      (skill) => `
-    <div class="skill-list-item ${skill.unlocked ? "unlocked" : ""}" data-skill-id="${skill.id}">
-      <span class="skill-icon-sm"><i class="fas ${skill.icon || "fa-star"}"></i></span>
-      <div class="skill-info"><strong>${escapeHtml(skill.name)}</strong><small>${escapeHtml(skill.description || "")}</small></div>
-      <div class="item-actions">
-        <button class="btn btn-sm btn-secondary btn-edit-skill" data-skill-id="${skill.id}" title="Edit"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-danger btn-delete-skill" data-skill-id="${skill.id}" title="Delete"><i class="fas fa-trash"></i></button>
-      </div>
-    </div>
-  `,
-    )
-    .join("");
-
-  // Bind edit/delete events
-  list.querySelectorAll(".btn-delete-skill").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (!confirm(t("deleteConfirm") || "Delete this skill?")) return;
-      const { error } = await deleteSkill(btn.dataset.skillId);
-      if (error) {
-        showToast(error, "error");
-      } else {
-        showToast(t("skillDeleted") || "Skill deleted", "success");
-        // Refresh lists
-        const { skills: freshSkills } = await fetchUserSkills();
-        renderSkillsList(containerId, freshSkills);
-        await renderSkillTreePage();
-      }
-    });
-  });
-}
-
-function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  if (data?.url) {
+    const avatarImg = document.getElementById("profile-avatar");
+    const headerAvatar = document.getElementById("header-avatar");
+    if (avatarImg) avatarImg.src = data.url;
+    if (headerAvatar) headerAvatar.src = data.url;
+    notify(t("profile.avatarUpdated"), "success");
+  }
 }

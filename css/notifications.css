@@ -1,0 +1,12 @@
+/* ===== Notifications CSS ===== */
+/* (Already mostly in style.css, this is for extra styles if needed) */
+.notification-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.notification-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.notification-panel::-webkit-scrollbar-thumb {
+  background: var(--dark-lighter);
+  border-radius: 3px;
+}

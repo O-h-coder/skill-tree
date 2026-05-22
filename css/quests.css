@@ -1,0 +1,129 @@
+/* ===== Quests Page ===== */
+.quests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quest-card {
+  background: var(--dark-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: var(--transition);
+}
+
+.quest-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.quest-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--primary);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+  background: none;
+  color: var(--primary);
+}
+
+.quest-checkbox:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.quest-checkbox.completed {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: white;
+}
+
+.quest-content {
+  flex: 1;
+}
+
+.quest-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.quest-title.completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.quest-description {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.quest-reward {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.quest-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.quest-actions button {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+}
+
+.btn-edit-quest {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+}
+
+.btn-edit-quest:hover {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+.btn-delete-quest {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
+.btn-delete-quest:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.completed-quests {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.completed-quests h4 {
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.completed-quests .quest-card {
+  opacity: 0.6;
+}

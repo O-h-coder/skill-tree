@@ -1,306 +1,320 @@
-// File: js/quests.js
-/**
- * quests.js — إدارة المهام اليومية + UI
- */
-
+// ===== Quests Module =====
 import { getSupabase } from "./supabase.js";
-import { getCurrentUserId } from "./auth.js";
-import { addXP, updateStreak } from "./user.js";
-import { showToast } from "./ui.js";
+import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
+import { notify } from "./ui.js";
+import { updateStats, loadUserStats } from "./user.js";
 
-// ===== DATA =====
+let currentQuests = [];
+let editingQuestId = null;
 
-export async function fetchDailyQuests() {
-  const userId = getCurrentUserId();
-  if (!userId) return { quests: [], error: "Not authenticated" };
-  const sb = await getSupabase();
-  try {
-    await checkDailyReset();
-    const { data, error } = await sb
-      .from("quests")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return { quests: data || [], error: null };
-  } catch (error) {
-    return { quests: [], error: error.message };
+export async function loadQuests() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  const { data, error } = await supabase
+    .from("quests")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Load quests error:", error);
+    return [];
   }
+
+  currentQuests = data || [];
+  return currentQuests;
 }
 
-export async function addQuest({
-  name,
-  description,
-  xp_reward,
-  is_daily = true,
-}) {
-  const userId = getCurrentUserId();
-  if (!userId) return { quest: null, error: "Not authenticated" };
-  if (!name || name.trim().length < 2)
-    return { quest: null, error: t("questNameRequired") };
+export async function addQuest(title, description, xpReward) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  const sb = await getSupabase();
-  try {
-    const { data, error } = await sb
-      .from("quests")
-      .insert({
-        user_id: userId,
-        name: name.trim(),
+  const { data, error } = await supabase
+    .from("quests")
+    .insert([
+      {
+        user_id: user.id,
+        title: title.trim(),
         description: description?.trim() || "",
-        xp_reward: xp_reward || 50,
+        xp_reward: parseInt(xpReward) || 10,
         completed: false,
-        is_daily,
         created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    await updateQuestsCount();
-    return { quest: data, error: null };
-  } catch (error) {
-    return { quest: null, error: error.message };
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Add quest error:", error);
+    return { error };
   }
+
+  notify(t("quests.addSuccess"), "success");
+  await loadQuests();
+  renderQuests();
+
+  return { data, error: null };
 }
 
-export async function completeQuest(questId) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: "Not authenticated" };
-  const sb = await getSupabase();
+export async function editQuest(questId, updates) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  try {
-    const { data: quest, error: qErr } = await sb
-      .from("quests")
-      .select("*")
-      .eq("id", questId)
-      .eq("user_id", userId)
-      .single();
-    if (qErr || !quest) return { error: t("failedLoadQuests") };
-    if (quest.completed) return { error: t("questCompleted") };
+  const { data, error } = await supabase
+    .from("quests")
+    .update({
+      title: updates.title?.trim(),
+      description: updates.description?.trim(),
+      xp_reward: parseInt(updates.xp_reward) || 10,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", questId)
+    .eq("user_id", user.id)
+    .select()
+    .single();
 
-    await sb
-      .from("quests")
-      .update({ completed: true, completed_at: new Date().toISOString() })
-      .eq("id", questId)
-      .eq("user_id", userId);
-    await addXP(quest.xp_reward, `Quest: ${quest.name}`);
-    await updateStreak();
-    await updateQuestsCount();
-    return { error: null, xp: quest.xp_reward };
-  } catch (error) {
-    return { error: error.message };
+  if (error) {
+    console.error("Edit quest error:", error);
+    return { error };
   }
+
+  notify(t("quests.editSuccess"), "success");
+  await loadQuests();
+  renderQuests();
+
+  return { data, error: null };
 }
 
 export async function deleteQuest(questId) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: "Not authenticated" };
-  const sb = await getSupabase();
-  try {
-    const { error } = await sb
-      .from("quests")
-      .delete()
-      .eq("id", questId)
-      .eq("user_id", userId);
-    if (error) throw error;
-    await updateQuestsCount();
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-export async function resetDailyQuests() {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: "Not authenticated" };
-  const sb = await getSupabase();
-  try {
-    await sb
-      .from("quests")
-      .update({ completed: false, completed_at: null })
-      .eq("user_id", userId)
-      .eq("is_daily", true);
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function checkDailyReset() {
-  const userId = getCurrentUserId();
-  if (!userId) return;
-  const sb = await getSupabase();
-  const { data: stats } = await sb
-    .from("user_stats")
-    .select("last_active")
-    .eq("user_id", userId)
-    .single();
-  const today = new Date().toISOString().split("T")[0];
-  const lastActive = stats?.last_active
-    ? stats.last_active.split("T")[0]
-    : null;
-  if (lastActive !== today) await resetDailyQuests();
-}
-
-async function updateQuestsCount() {
-  const userId = getCurrentUserId();
-  if (!userId) return;
-  const sb = await getSupabase();
-  const { data: all } = await sb
+  const { error } = await supabase
     .from("quests")
-    .select("completed")
-    .eq("user_id", userId);
-  const done = all?.filter((q) => q.completed).length || 0;
-  const total = all?.length || 0;
-  await sb
-    .from("user_stats")
-    .update({
-      quests_done: done,
-      total_quests: total,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-}
+    .delete()
+    .eq("id", questId)
+    .eq("user_id", user.id);
 
-// ===== UI: Daily Quests Page =====
-
-export async function renderDailyQuestsPage() {
-  const container = document.getElementById("dailyQuestsContainer");
-  const progressText = document.getElementById("questsProgressText");
-  const progressBar = document.getElementById("questsProgressBar");
-  const streakDisplay = document.getElementById("questsStreakDisplay");
-
-  if (!container) return;
-
-  const { quests, error } = await fetchDailyQuests();
   if (error) {
-    showToast(error, "error");
-    return;
+    console.error("Delete quest error:", error);
+    return { error };
   }
 
-  const completedCount = quests.filter((q) => q.completed).length;
-  const totalCount = quests.length;
-  const progressPercent =
-    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  notify(t("quests.deleteSuccess"), "success");
+  await loadQuests();
+  renderQuests();
 
-  if (progressText)
-    progressText.textContent = `${completedCount} / ${totalCount} ${t("questsCompleted")}`;
-  if (progressBar) progressBar.style.width = `${progressPercent}%`;
-  if (streakDisplay) {
-    const { updateStreak } = await import("./user.js");
-    const { streak } = await updateStreak();
-    streakDisplay.innerHTML = `<i class="fas fa-fire"></i> ${streak} ${t("streakDays")}`;
-  }
-
-  if (!quests.length) {
-    container.innerHTML = `
-      <div class="quests-empty">
-        <i class="fas fa-clipboard-list"></i>
-        <h3>${t("questsEmptyTitle")}</h3>
-        <p>${t("questsEmptyDesc")}</p>
-      </div>
-    `;
-    return;
-  }
-
-  let html = '<div class="quests-grid">';
-  quests.forEach((quest) => {
-    html += renderQuestCard(quest);
-  });
-  html += "</div>";
-  container.innerHTML = html;
-
-  container.querySelectorAll(".quest-card:not(.completed)").forEach((card) => {
-    card.addEventListener("click", async () => {
-      const questId = card.dataset.questId;
-      const { error: completeError, xp } = await completeQuest(questId);
-      if (completeError) {
-        showToast(completeError, "error");
-      } else {
-        showToast(t("questCompleted", { xp: xp || 0 }), "success");
-        await renderDailyQuestsPage();
-        window.dispatchEvent(
-          new CustomEvent("questcompleted", { detail: { questId, xp } }),
-        );
-      }
-    });
-  });
+  return { error: null };
 }
 
-function renderQuestCard(quest) {
-  const statusClass = quest.completed ? "completed" : "pending";
-  const statusText = quest.completed ? t("completed") : t("pending");
-  const statusIcon = quest.completed ? "fa-check-circle" : "fa-hourglass-half";
+export async function completeQuest(questId) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  return `
-    <div class="quest-card ${statusClass}" data-quest-id="${quest.id}">
-      <div class="quest-glow"></div>
-      <div class="quest-card-inner">
-        <div class="quest-check-ring">
-          <div class="quest-check-fill ${quest.completed ? "filled" : ""}">
-            <i class="fas ${quest.completed ? "fa-check" : ""}"></i>
-          </div>
-        </div>
-        <div class="quest-card-info">
-          <h4>${escapeHtml(quest.name)}</h4>
-          <p>${escapeHtml(quest.description || "")}</p>
-        </div>
-        <div class="quest-card-meta">
-          <span class="quest-status ${statusClass}"><i class="fas ${statusIcon}"></i> ${statusText}</span>
-          <span class="quest-xp-reward"><i class="fas fa-bolt"></i> +${quest.xp_reward} XP</span>
-        </div>
-      </div>
-    </div>
-  `;
+  const quest = currentQuests.find((q) => q.id === questId);
+  if (!quest) return { error: new Error("Quest not found") };
+
+  if (quest.completed) {
+    return { error: new Error("Quest already completed") };
+  }
+
+  // Mark quest as completed
+  const { error: updateError } = await supabase
+    .from("quests")
+    .update({
+      completed: true,
+      completed_at: new Date().toISOString(),
+    })
+    .eq("id", questId)
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    console.error("Complete quest error:", updateError);
+    return { error: updateError };
+  }
+
+  // Add XP to user stats
+  const stats = await loadUserStats();
+  const newXp = (stats?.xp || 0) + (quest.xp_reward || 10);
+  const newLevel = Math.floor(newXp / 100) + 1;
+
+  await updateStats({
+    xp: newXp,
+    level: newLevel,
+  });
+
+  // Add activity history
+  await supabase.from("activity_history").insert([
+    {
+      user_id: user.id,
+      type: "quest_complete",
+      title: quest.title,
+      description: `Completed quest: ${quest.title} (+${quest.xp_reward} XP)`,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  notify(t("notifications.questComplete", { title: quest.title }), "success");
+
+  await loadQuests();
+  renderQuests();
+
+  // Refresh user stats display
+  const headerXp = document.getElementById("user-xp");
+  const headerLevel = document.getElementById("user-level");
+  if (headerXp) headerXp.textContent = `${newXp} XP`;
+  if (headerLevel) headerLevel.textContent = `Level ${newLevel}`;
+
+  return { error: null };
 }
 
-// ===== UI: Quests List (for Profile) =====
+export function renderQuests() {
+  const list = document.getElementById("quests-list");
+  const completedSection = document.getElementById("completed-quests");
+  const completedList = document.getElementById("completed-list");
 
-export function renderQuestsList(containerId, quests) {
-  const list = document.getElementById(containerId);
   if (!list) return;
 
-  if (!quests || !quests.length) {
-    list.innerHTML = `<div class="quest-list-empty">${t("noQuests")}</div>`;
+  const activeQuests = currentQuests.filter((q) => !q.completed);
+  const completedQuests = currentQuests.filter((q) => q.completed);
+
+  // Render active quests
+  if (activeQuests.length === 0) {
+    list.innerHTML = `<div class="empty-state">${t("quests.noQuests")}</div>`;
+  } else {
+    list.innerHTML = activeQuests
+      .map(
+        (quest) => `
+            <div class="quest-card" data-quest-id="${quest.id}">
+                <button class="quest-checkbox" data-action="completeQuest" data-id="${quest.id}">
+                    <i class="fas fa-check"></i>
+                </button>
+                <div class="quest-content">
+                    <h4 class="quest-title">${quest.title}</h4>
+                    <p class="quest-description">${quest.description || ""}</p>
+                </div>
+                <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} XP</span>
+                <div class="quest-actions">
+                    <button class="btn-edit-quest" data-action="editQuest" data-id="${quest.id}">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn-delete-quest" data-action="deleteQuest" data-id="${quest.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `,
+      )
+      .join("");
+  }
+
+  // Render completed quests
+  if (completedList) {
+    if (completedQuests.length === 0) {
+      if (completedSection) completedSection.classList.add("hidden");
+    } else {
+      if (completedSection) completedSection.classList.remove("hidden");
+      completedList.innerHTML = completedQuests
+        .map(
+          (quest) => `
+                <div class="quest-card" data-quest-id="${quest.id}">
+                    <div class="quest-checkbox completed">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="quest-content">
+                        <h4 class="quest-title completed">${quest.title}</h4>
+                        <p class="quest-description">${quest.description || ""}</p>
+                    </div>
+                    <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} XP</span>
+                    <div class="quest-actions">
+                        <button class="btn-delete-quest" data-action="deleteQuest" data-id="${quest.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `,
+        )
+        .join("");
+    }
+  }
+}
+
+export function openEditQuestModal(questId) {
+  const quest = currentQuests.find((q) => q.id === questId);
+  if (!quest) return;
+
+  editingQuestId = questId;
+
+  const modal = document.getElementById("edit-quest-modal");
+  const titleInput = document.getElementById("edit-quest-title");
+  const descInput = document.getElementById("edit-quest-description");
+  const xpInput = document.getElementById("edit-quest-xp");
+
+  if (modal) modal.classList.remove("hidden");
+  if (titleInput) titleInput.value = quest.title;
+  if (descInput) descInput.value = quest.description || "";
+  if (xpInput) xpInput.value = quest.xp_reward;
+}
+
+export function openAddQuestModal() {
+  const modal = document.getElementById("add-quest-modal");
+  if (modal) modal.classList.remove("hidden");
+
+  // Clear inputs
+  const titleInput = document.getElementById("new-quest-title");
+  const descInput = document.getElementById("new-quest-description");
+  const xpInput = document.getElementById("new-quest-xp");
+
+  if (titleInput) titleInput.value = "";
+  if (descInput) descInput.value = "";
+  if (xpInput) xpInput.value = "10";
+}
+
+export async function saveQuestEdit() {
+  if (!editingQuestId) return;
+
+  const titleInput = document.getElementById("edit-quest-title");
+  const descInput = document.getElementById("edit-quest-description");
+  const xpInput = document.getElementById("edit-quest-xp");
+
+  if (!titleInput?.value.trim()) {
+    notify(t("quests.titleRequired"), "error");
     return;
   }
 
-  list.innerHTML = quests
-    .map(
-      (quest) => `
-    <div class="quest-list-item ${quest.completed ? "completed" : ""}" data-quest-id="${quest.id}">
-      <span class="quest-check-sm ${quest.completed ? "checked" : ""}"><i class="fas ${quest.completed ? "fa-check" : "fa-circle"}"></i></span>
-      <div class="quest-info"><strong>${escapeHtml(quest.name)}</strong><small>${escapeHtml(quest.description || "")}</small></div>
-      <div class="item-actions">
-        <button class="btn btn-sm btn-danger btn-delete-quest" data-quest-id="${quest.id}" title="Delete"><i class="fas fa-trash"></i></button>
-      </div>
-    </div>
-  `,
-    )
-    .join("");
-
-  // Bind delete events
-  list.querySelectorAll(".btn-delete-quest").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (!confirm(t("deleteConfirm") || "Delete this quest?")) return;
-      const { error } = await deleteQuest(btn.dataset.questId);
-      if (error) {
-        showToast(error, "error");
-      } else {
-        showToast(t("questDeleted") || "Quest deleted", "success");
-        // Refresh lists
-        const { quests: freshQuests } = await fetchDailyQuests();
-        renderQuestsList(containerId, freshQuests);
-        await renderDailyQuestsPage();
-      }
-    });
+  await editQuest(editingQuestId, {
+    title: titleInput.value,
+    description: descInput.value,
+    xp_reward: xpInput.value,
   });
+
+  closeModal("edit-quest-modal");
+  editingQuestId = null;
 }
 
-function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+export async function saveNewQuest() {
+  const titleInput = document.getElementById("new-quest-title");
+  const descInput = document.getElementById("new-quest-description");
+  const xpInput = document.getElementById("new-quest-xp");
+
+  if (!titleInput?.value.trim()) {
+    notify(t("quests.titleRequired"), "error");
+    return;
+  }
+
+  await addQuest(titleInput.value, descInput.value, xpInput.value || 10);
+
+  closeModal("add-quest-modal");
+}
+
+export function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add("hidden");
 }

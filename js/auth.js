@@ -1,91 +1,106 @@
-// File: js/auth.js
-/**
- * auth.js — المصادقة والجلسات
- */
-
+// ===== Auth Module =====
 import { getSupabase } from "./supabase.js";
-
-let currentUser = null;
+import { t } from "./i18n.js";
 
 export async function getCurrentUser() {
-  try {
-    const sb = await getSupabase();
-    if (!sb) return { user: null, error: "Supabase not initialized" };
-
-    const { data, error } = await sb.auth.getUser();
-    if (error) {
-      currentUser = null;
-      return { user: null, error: error.message };
-    }
-    currentUser = data?.user || null;
-    return { user: currentUser, error: null };
-  } catch (err) {
-    console.error("getCurrentUser error:", err);
-    return { user: null, error: err.message };
-  }
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
 }
 
-export function getCurrentUserId() {
-  return currentUser?.id || null;
+export async function getSession() {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session) return null;
+  return session;
 }
 
-export async function signUp(email, password, displayName) {
-  const sb = await getSupabase();
-  const { data, error } = await sb.auth.signUp({
+export async function signUp(email, password, username) {
+  const supabase = getSupabase();
+  if (!supabase) return { error: new Error("Supabase not initialized") };
+
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: { display_name: displayName || email.split("@")[0] },
-    },
+    options: { data: { username } },
   });
-  if (error) return { user: null, error: error.message };
-  currentUser = data?.user || null;
-  return { user: currentUser, error: null };
+
+  if (error) return { error };
+
+  // Create profile
+  if (data.user) {
+    const { error: profileError } = await supabase.from("profiles").insert([
+      {
+        id: data.user.id,
+        username: username || email.split("@")[0],
+        email: email,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    if (profileError) console.error("Profile creation error:", profileError);
+
+    // Create user_stats
+    const { error: statsError } = await supabase.from("user_stats").insert([
+      {
+        user_id: data.user.id,
+        level: 1,
+        xp: 0,
+        gold: 0,
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+
+    if (statsError) console.error("Stats creation error:", statsError);
+  }
+
+  return { data, error: null };
 }
 
 export async function signIn(email, password) {
-  const sb = await getSupabase();
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) return { user: null, error: error.message };
-  currentUser = data?.user || null;
-  return { user: currentUser, error: null };
-}
+  const supabase = getSupabase();
+  if (!supabase) return { error: new Error("Supabase not initialized") };
 
-export async function resetPassword(email) {
-  const sb = await getSupabase();
-  const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + "/login.html",
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
-  if (error) return { error: error.message };
-  return { error: null };
+
+  return { data, error };
 }
 
 export async function signOut() {
-  const sb = await getSupabase();
-  const { error } = await sb.auth.signOut();
-  if (error) return { error: error.message };
-  currentUser = null;
-  return { error: null };
+  const supabase = getSupabase();
+  if (!supabase) return { error: new Error("Supabase not initialized") };
+
+  const { error } = await supabase.auth.signOut();
+  return { error };
 }
 
-export function onAuthStateChange(callback) {
-  getSupabase().then((sb) => {
-    if (!sb) return;
-    sb.auth.onAuthStateChange((event, session) => {
-      currentUser = session?.user || null;
-      callback({ event, session, user: currentUser });
-    });
+export async function onAuthStateChange(callback) {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
   });
 }
 
-export async function updateUserProfile(updates) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: "Not authenticated" };
-  const sb = await getSupabase();
-  const { error } = await sb
-    .from("profiles")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("id", userId);
-  if (error) return { error: error.message };
-  return { error: null };
+export async function requireAuth() {
+  const user = await getCurrentUser();
+  if (!user) {
+    window.location.href = "login.html";
+    return false;
+  }
+  return true;
 }

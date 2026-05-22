@@ -1,0 +1,49 @@
+/* ===== Settings Page ===== */
+.settings-container {
+  max-width: 600px;
+}
+
+.settings-card {
+  background: var(--dark-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.settings-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.setting-row label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.setting-row select {
+  padding: 10px 14px;
+  background: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.setting-row select:focus {
+  outline: none;
+  border-color: var(--primary);
+}

@@ -1,57 +1,27 @@
-// File: js/supabase.js
-/**
- * supabase.js — تهيئة عميل Supabase
- */
+// ===== Supabase Client =====
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./constants.js";
 
-import { SUPABASE_URL, SUPABASE_KEY } from "./constants.js";
+let supabase = null;
 
-let _sb = null;
-
-function waitForSupabase(maxMs = 10000) {
-  return new Promise((resolve) => {
-    const start = Date.now();
-    const check = () => {
-      if (
-        typeof window !== "undefined" &&
-        window.supabase &&
-        window.supabase.createClient
-      ) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - start > maxMs) {
-        resolve(false);
-        return;
-      }
-      setTimeout(check, 100);
-    };
-    check();
+export function initSupabase() {
+  if (supabase) return supabase;
+  if (!window.supabase) {
+    console.error("Supabase library not loaded");
+    return null;
+  }
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
   });
-}
-
-export async function initSupabase() {
-  if (_sb) return _sb;
-  const ready = await waitForSupabase();
-  if (!ready) {
-    console.error("Supabase CDN not loaded in time");
-    return null;
-  }
-  try {
-    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
-    });
-    return _sb;
-  } catch (e) {
-    console.error("Supabase init error:", e);
-    return null;
-  }
+  return supabase;
 }
 
 export function getSupabase() {
-  if (!_sb) return initSupabase();
-  return Promise.resolve(_sb);
+  if (!supabase) {
+    return initSupabase();
+  }
+  return supabase;
 }

@@ -1,45 +1,76 @@
-// File: js/constants.js
-/**
- * constants.js — الثوابت والإعدادات العامة
- */
-
+// ===== Constants =====
 export const SUPABASE_URL = "https://mvvvhrxvsatzqqfxmgpb.supabase.co";
-export const SUPABASE_KEY =
+export const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12dnZocnh2c2F0enFxZnhtZ3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzODQ5MzMsImV4cCI6MjA5NDk2MDkzM30.Pg21CayHy-ebtAnD2rs5tGAAx2ImNyH5F_Y7VhL1-us";
 
-export const APP_CONSTANTS = {
-  TITLES: {
-    1: { ar: "صيّاد E-Rank", en: "E-Rank Hunter" },
-    10: { ar: "صيّاد D-Rank", en: "D-Rank Hunter" },
-    25: { ar: "صيّاد C-Rank", en: "C-Rank Hunter" },
-    50: { ar: "صيّاد B-Rank", en: "B-Rank Hunter" },
-    75: { ar: "صيّاد A-Rank", en: "A-Rank Hunter" },
-    100: { ar: "صيّاد S-Rank", en: "S-Rank Hunter" },
+export const DEFAULT_SKILLS = [
+  {
+    id: "strength",
+    name: "القوة",
+    description: "تطوير القوة البدنية واللياقة",
+    icon: "fa-dumbbell",
+    xpCost: 0,
+    color: "#ef4444",
   },
-  XP_MULTIPLIER: 1.5,
-  DEFAULT_LANG: "ar",
-  DEFAULT_THEME: "dark",
-};
+  {
+    id: "intelligence",
+    name: "الذكاء",
+    description: "تطوير العقل والمعرفة",
+    icon: "fa-brain",
+    xpCost: 0,
+    color: "#6366f1",
+  },
+  {
+    id: "agility",
+    name: "الرشاقة",
+    description: "السرعة والمرونة",
+    icon: "fa-running",
+    xpCost: 50,
+    color: "#10b981",
+  },
+  {
+    id: "perception",
+    name: "الإدراك",
+    description: "حواسك ووعيك",
+    icon: "fa-eye",
+    xpCost: 50,
+    color: "#f59e0b",
+  },
+  {
+    id: "magic",
+    name: "السحر",
+    description: "قوى خارقة",
+    icon: "fa-hat-wizard",
+    xpCost: 100,
+    color: "#8b5cf6",
+  },
+  {
+    id: "crafting",
+    name: "الصناعة",
+    description: "صناعة الأدوات والأسلحة",
+    icon: "fa-hammer",
+    xpCost: 100,
+    color: "#d97706",
+  },
+  {
+    id: "stealth",
+    name: "التخفي",
+    description: "الاختفاء والتسلل",
+    icon: "fa-ghost",
+    xpCost: 150,
+    color: "#64748b",
+  },
+  {
+    id: "leadership",
+    name: "القيادة",
+    description: "قيادة الفرق والجيوش",
+    icon: "fa-crown",
+    xpCost: 200,
+    color: "#fbbf24",
+  },
+];
 
-export const THEMES = {
-  neonBlue: {
-    name: "نيون أزرق / Neon Blue",
-    primary: "#00d4ff",
-    secondary: "#7000ff",
-  },
-  neonRed: {
-    name: "نيون أحمر / Neon Red",
-    primary: "#ff2a6d",
-    secondary: "#d300c5",
-  },
-  neonGreen: {
-    name: "نيون أخضر / Neon Green",
-    primary: "#39ff14",
-    secondary: "#008f11",
-  },
-  neonGold: {
-    name: "نيون ذهبي / Neon Gold",
-    primary: "#ffd700",
-    secondary: "#ff8c00",
-  },
-};
+export const XP_PER_LEVEL = 100;
+export const INITIAL_GOLD = 0;
+export const INITIAL_XP = 0;
+export const INITIAL_LEVEL = 1;

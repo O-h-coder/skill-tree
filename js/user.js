@@ -1,331 +1,323 @@
-// File: js/user.js
-/**
- * user.js — إدارة بيانات المستخدم
- */
-
+// ===== User Module =====
 import { getSupabase } from "./supabase.js";
-import { getCurrentUserId, updateUserProfile } from "./auth.js";
-import { APP_CONSTANTS } from "./constants.js";
-import { t, getCurrentLanguage } from "./i18n.js";
+import { getCurrentUser } from "./auth.js";
+import { t } from "./i18n.js";
+import { notify } from "./ui.js";
 
-let userData = null;
+let currentProfile = null;
 
-export async function fetchUserData() {
-  const userId = getCurrentUserId();
-  if (!userId) return { data: null, error: t("errorAuth") };
+export async function loadUserProfile() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return null;
 
-  const sb = await getSupabase();
-  try {
-    const { data: profile, error: pErr } = await sb
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    if (pErr) throw pErr;
-
-    let { data: stats, error: sErr } = await sb
-      .from("user_stats")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (sErr?.code === "PGRST116") {
-      await sb.from("user_stats").insert({
-        user_id: userId,
-        skills_unlocked: 0,
-        total_skills: 0,
-        quests_done: 0,
-        total_quests: 0,
-        streak: 0,
-        last_active: new Date().toISOString(),
-      });
-      stats = {
-        skills_unlocked: 0,
-        total_skills: 0,
-        quests_done: 0,
-        total_quests: 0,
-        streak: 0,
-        last_active: null,
-      };
-    } else if (sErr) {
-      throw sErr;
-    }
-
-    const title = profile.title || getTitleByLevel(profile.level || 1);
-    userData = { ...profile, title, stats: stats || {} };
-    return { data: userData, error: null };
-  } catch (error) {
-    return { data: null, error: error.message };
-  }
-}
-
-export async function updateUsername(username) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: t("errorAuth") };
-  const sb = await getSupabase();
-  try {
-    const { data: existing, error: checkErr } = await sb
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .neq("id", userId)
-      .maybeSingle();
-    if (checkErr) throw checkErr;
-    if (existing) return { error: t("usernameTaken") };
-
-    const { error } = await sb
-      .from("profiles")
-      .update({ username, updated_at: new Date().toISOString() })
-      .eq("id", userId);
-    if (error) throw error;
-
-    if (userData) userData.username = username;
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-export async function addXP(amount, reason = "") {
-  if (!userData) {
-    const r = await fetchUserData();
-    if (r.error) return r;
-  }
-
-  let newExp = (userData.exp || 0) + amount;
-  let newLevel = userData.level || 1;
-  let newMaxExp = userData.max_exp || 100;
-  let leveledUp = false;
-
-  while (newExp >= newMaxExp) {
-    newExp -= newMaxExp;
-    newLevel++;
-    newMaxExp = Math.floor(newMaxExp * APP_CONSTANTS.XP_MULTIPLIER);
-    leveledUp = true;
-  }
-  if (newExp < 0) newExp = 0;
-
-  const newTitle = getTitleByLevel(newLevel);
-
-  const { error } = await updateUserProfile({
-    exp: newExp,
-    max_exp: newMaxExp,
-    level: newLevel,
-    title: newTitle,
-  });
-  if (error) return { error };
-
-  userData = {
-    ...userData,
-    exp: newExp,
-    max_exp: newMaxExp,
-    level: newLevel,
-    title: newTitle,
-  };
-
-  if (amount > 0)
-    await addActivity("xp_gain", `+${amount} XP — ${reason}`, amount);
-  if (leveledUp)
-    await addActivity(
-      "level_up",
-      `Level Up! ${newTitle} (LVL ${newLevel})`,
-      newLevel,
-    );
-
-  return { leveledUp, newLevel, newExp, newMaxExp, newTitle, error: null };
-}
-
-export function getTitleByLevel(level) {
-  const levels = Object.keys(APP_CONSTANTS.TITLES)
-    .map(Number)
-    .sort((a, b) => b - a);
-  const lang = getCurrentLanguage();
-  for (const l of levels) {
-    if (level >= l) {
-      return APP_CONSTANTS.TITLES[l][lang] || APP_CONSTANTS.TITLES[l].ar;
-    }
-  }
-  return APP_CONSTANTS.TITLES[1][lang] || APP_CONSTANTS.TITLES[1].ar;
-}
-
-export async function updateStreak() {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: t("errorAuth") };
-  const sb = await getSupabase();
-
-  const { data: stats } = await sb
-    .from("user_stats")
-    .select("streak, last_active")
-    .eq("user_id", userId)
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
     .single();
-  const today = new Date().toISOString().split("T")[0];
-  const lastActive = stats?.last_active
-    ? stats.last_active.split("T")[0]
-    : null;
 
-  if (lastActive === today)
-    return { streak: stats?.streak || 0, updated: false };
+  if (error) {
+    console.error("Load profile error:", error);
+    return null;
+  }
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const newStreak =
-    lastActive === yesterday.toISOString().split("T")[0]
-      ? (stats?.streak || 0) + 1
-      : 1;
+  currentProfile = data;
+  return data;
+}
 
-  await sb
+export async function loadUserStats() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return null;
+
+  const { data, error } = await supabase
     .from("user_stats")
-    .update({ streak: newStreak, last_active: new Date().toISOString() })
-    .eq("user_id", userId);
-  return { streak: newStreak, updated: true };
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Load stats error:", error);
+    return null;
+  }
+
+  return data;
 }
 
-export async function getActivityHistory(limit = 50) {
-  const userId = getCurrentUserId();
-  if (!userId) return { history: [], error: "Not authenticated" };
-  const sb = await getSupabase();
-  try {
-    const { data, error } = await sb
-      .from("activity_history")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return { history: data || [], error: null };
-  } catch (error) {
-    return { history: [], error: error.message };
-  }
+export async function updateProfile(updates) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", user.id)
+    .select()
+    .single();
+
+  if (error) return { error };
+  currentProfile = data;
+  return { data, error: null };
 }
 
-export async function addActivity(type, description, value = null) {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: t("errorAuth") };
-  const sb = await getSupabase();
-  try {
-    await sb.from("activity_history").insert({
-      user_id: userId,
-      type,
-      description,
-      value,
-      created_at: new Date().toISOString(),
-    });
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
+export async function updateStats(updates) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
+
+  const { data, error } = await supabase
+    .from("user_stats")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .select()
+    .single();
+
+  return { data, error };
 }
 
 export async function uploadAvatar(file) {
-  const userId = getCurrentUserId();
-  if (!userId) return { url: null, error: "Not authenticated" };
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  // Validate file
-  if (!file || file.size > 5 * 1024 * 1024) {
-    return { url: null, error: "File too large (max 5MB)" };
+  if (!file || file.size === 0) {
+    return { error: new Error("No file selected") };
   }
+
+  // Validate file type
   if (!file.type.startsWith("image/")) {
-    return { url: null, error: "Only image files allowed" };
+    return { error: new Error("Please select an image file") };
   }
 
-  const sb = await getSupabase();
-  try {
-    const ext = file.name.split(".").pop().toLowerCase();
-    const fileName = `${userId}-${Date.now()}.${ext}`;
-    const filePath = `${fileName}`; // FIX: Upload to root of bucket
+  // Validate file size (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    return { error: new Error("Image size must be less than 2MB") };
+  }
 
-    const { error: upErr } = await sb.storage
-      .from("profiles")
-      .upload(filePath, file, {
-        upsert: true,
-        contentType: file.type,
-      });
-    if (upErr) {
-      console.error("Upload error:", upErr);
-      throw upErr;
-    }
+  const fileExt = file.name.split(".").pop().toLowerCase();
+  const allowedExts = ["jpg", "jpeg", "png", "gif", "webp"];
+  if (!allowedExts.includes(fileExt)) {
+    return { error: new Error("Invalid image format") };
+  }
 
-    const {
-      data: { publicUrl },
-    } = sb.storage.from("profiles").getPublicUrl(filePath);
+  const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+  const filePath = `avatars/${fileName}`;
 
-    // Update profile with new avatar URL
-    const { error: updateErr } = await updateUserProfile({
-      avatar_url: publicUrl,
+  // Upload to storage
+  const { error: uploadError } = await supabase.storage
+    .from("profiles")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: file.type,
     });
-    if (updateErr) throw updateErr;
 
-    if (userData) userData.avatar_url = publicUrl;
-    return { url: publicUrl, error: null };
-  } catch (error) {
-    console.error("uploadAvatar error:", error);
-    return { url: null, error: error.message || "Upload failed" };
+  if (uploadError) {
+    console.error("Upload error:", uploadError);
+    return { error: uploadError };
+  }
+
+  // Get public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("profiles").getPublicUrl(filePath);
+
+  // Update profile with new avatar URL
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: publicUrl })
+    .eq("id", user.id);
+
+  if (updateError) {
+    console.error("Update profile error:", updateError);
+    return { error: updateError };
+  }
+
+  return { data: { url: publicUrl }, error: null };
+}
+
+export async function renderProfilePage() {
+  const profile = await loadUserProfile();
+  const stats = await loadUserStats();
+
+  if (!profile) return;
+
+  // Update profile card
+  const avatarImg = document.getElementById("profile-avatar");
+  const headerAvatar = document.getElementById("header-avatar");
+
+  if (avatarImg) {
+    avatarImg.src =
+      profile.avatar_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || "User")}&background=6366f1&color=fff`;
+  }
+  if (headerAvatar) {
+    headerAvatar.src =
+      profile.avatar_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || "User")}&background=6366f1&color=fff`;
+  }
+
+  const usernameEl = document.getElementById("profile-username");
+  const headerUsername = document.getElementById("header-username");
+  const emailEl = document.getElementById("profile-email");
+
+  if (usernameEl) usernameEl.textContent = profile.username || "User";
+  if (headerUsername) headerUsername.textContent = profile.username || "User";
+  if (emailEl) emailEl.textContent = profile.email || "";
+
+  // Update stats
+  const levelEl = document.getElementById("profile-level");
+  const xpEl = document.getElementById("profile-xp");
+  const goldEl = document.getElementById("profile-gold");
+  const friendsEl = document.getElementById("profile-friends");
+
+  if (levelEl) levelEl.textContent = stats?.level || 1;
+  if (xpEl) xpEl.textContent = stats?.xp || 0;
+  if (goldEl) goldEl.textContent = stats?.gold || 0;
+
+  // Count friends
+  const friendCount = await getFriendCount();
+  if (friendsEl) friendsEl.textContent = friendCount;
+
+  // Update header stats
+  const headerLevel = document.getElementById("user-level");
+  const headerXp = document.getElementById("user-xp");
+  const headerGold = document.getElementById("user-gold");
+
+  if (headerLevel) headerLevel.textContent = `Level ${stats?.level || 1}`;
+  if (headerXp) headerXp.textContent = `${stats?.xp || 0} XP`;
+  if (headerGold) headerGold.textContent = `${stats?.gold || 0} Gold`;
+}
+
+async function getFriendCount() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return 0;
+
+  const { count, error } = await supabase
+    .from("friendships")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "accepted")
+    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+  if (error) return 0;
+  return count || 0;
+}
+
+export async function loadProfileSkills() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  const { data, error } = await supabase
+    .from("user_skills")
+    .select("*, skills(*)")
+    .eq("user_id", user.id)
+    .eq("unlocked", true);
+
+  if (error) {
+    console.error("Load profile skills error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function loadProfileQuests() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  const { data, error } = await supabase
+    .from("quests")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("Load profile quests error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function renderProfileItems() {
+  const skills = await loadProfileSkills();
+  const quests = await loadProfileQuests();
+
+  // Render skills
+  const skillsList = document.getElementById("profile-skills-list");
+  if (skillsList) {
+    if (skills.length === 0) {
+      skillsList.innerHTML = `<div class="empty-state">${t("friends.noFriends").replace("أصدقاء", "مهارات")}</div>`;
+    } else {
+      skillsList.innerHTML = skills
+        .map(
+          (s) => `
+                <div class="profile-item" data-skill-id="${s.skill_id}">
+                    <div class="profile-item-icon skill"><i class="fas ${s.skills?.icon || "fa-star"}"></i></div>
+                    <div class="profile-item-content">
+                        <h4>${s.skills?.name || "Skill"}</h4>
+                        <p>${s.skills?.description || ""}</p>
+                    </div>
+                    <div class="profile-item-actions">
+                        <button class="btn-edit" data-action="editSkill" data-id="${s.skill_id}" title="${t("common.edit")}"><i class="fas fa-pen"></i></button>
+                        <button class="btn-delete" data-action="deleteSkill" data-id="${s.skill_id}" title="${t("common.delete")}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `,
+        )
+        .join("");
+    }
+  }
+
+  // Render quests
+  const questsList = document.getElementById("profile-quests-list");
+  if (questsList) {
+    if (quests.length === 0) {
+      questsList.innerHTML = `<div class="empty-state">${t("friends.noFriends").replace("أصدقاء", "مهام")}</div>`;
+    } else {
+      questsList.innerHTML = quests
+        .map(
+          (q) => `
+                <div class="profile-item" data-quest-id="${q.id}">
+                    <div class="profile-item-icon quest"><i class="fas fa-scroll"></i></div>
+                    <div class="profile-item-content">
+                        <h4>${q.title}</h4>
+                        <p>${q.description || ""} - <span style="color: var(--warning)">${q.xp_reward} XP</span></p>
+                    </div>
+                    <div class="profile-item-actions">
+                        <button class="btn-edit" data-action="editQuest" data-id="${q.id}" title="${t("common.edit")}"><i class="fas fa-pen"></i></button>
+                        <button class="btn-delete" data-action="deleteQuest" data-id="${q.id}" title="${t("common.delete")}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `,
+        )
+        .join("");
+    }
   }
 }
 
-export async function resetSkillsAndLevel() {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: t("errorAuth") };
-  const sb = await getSupabase();
-  try {
-    await sb
-      .from("profiles")
-      .update({
-        level: 1,
-        exp: 0,
-        max_exp: 100,
-        title: getTitleByLevel(1),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-    await sb
-      .from("user_stats")
-      .update({ skills_unlocked: 0, quests_done: 0, streak: 0 })
-      .eq("user_id", userId);
-    await sb.from("activity_history").delete().eq("user_id", userId);
-    userData = null;
-    await fetchUserData();
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
+export async function handleAvatarChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const { data, error } = await uploadAvatar(file);
+
+  if (error) {
+    notify(error.message, "error");
+    return;
   }
-}
 
-export async function resetUserSettings() {
-  const userId = getCurrentUserId();
-  if (!userId) return { error: t("errorAuth") };
-  const sb = await getSupabase();
-  try {
-    await sb
-      .from("profiles")
-      .update({
-        theme: APP_CONSTANTS.DEFAULT_THEME,
-        language: APP_CONSTANTS.DEFAULT_LANG,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
+  if (data?.url) {
+    const avatarImg = document.getElementById("profile-avatar");
+    const headerAvatar = document.getElementById("header-avatar");
+    if (avatarImg) avatarImg.src = data.url;
+    if (headerAvatar) headerAvatar.src = data.url;
+    notify(t("profile.avatarUpdated"), "success");
   }
-}
-
-export function getCachedUserData() {
-  return userData;
-}
-
-export function getUserLevel() {
-  return userData?.level || 1;
-}
-
-export function getUserXP() {
-  return { current: userData?.exp || 0, max: userData?.max_exp || 100 };
-}
-
-export function getUserStreak() {
-  return userData?.stats?.streak || 0;
-}
-
-export function getUserTitle() {
-  return userData?.title || getTitleByLevel(getUserLevel());
 }

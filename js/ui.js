@@ -1,265 +1,195 @@
-// File: js/ui.js
-/**
- * ui.js — واجهة المستخدم والتنقل
- */
+// ===== UI Module =====
+import { t } from "./i18n.js";
+import { getSupabase } from "./supabase.js";
+import { getCurrentUser } from "./auth.js";
+import { loadFriendRequests } from "./friends.js";
 
-import {
-  getCachedUserData,
-  getUserXP,
-  getUserLevel,
-  getUserStreak,
-  getUserTitle,
-} from "./user.js";
-import { t, setLanguage as i18nSetLanguage } from "./i18n.js";
-
-// ===== BROWSER NOTIFICATIONS =====
-let notificationPermission = false;
-
-export async function requestNotificationPermission() {
-  if (!("Notification" in window)) return false;
-  if (Notification.permission === "granted") {
-    notificationPermission = true;
-    return true;
-  }
-  const permission = await Notification.requestPermission();
-  notificationPermission = permission === "granted";
-  return notificationPermission;
-}
-
-export function sendBrowserNotification(title, body, icon = "/favicon.ico") {
-  if (!notificationPermission || Notification.permission !== "granted") return;
-
-  try {
-    new Notification(title, {
-      body,
-      icon,
-      badge: icon,
-      tag: "skill-tree-" + Date.now(),
-      requireInteraction: false,
-    });
-  } catch (e) {
-    console.error("Notification error:", e);
-  }
-}
-
-export function notify(action, details = "") {
-  // Always show toast
-  const messages = {
-    skillUnlocked: { msg: "Skill unlocked!", type: "success" },
-    questCompleted: { msg: "Quest completed!", type: "success" },
-    friendRequestSent: { msg: "Friend request sent", type: "info" },
-    friendRequestAccepted: { msg: "Friend request accepted", type: "success" },
-    avatarUpdated: { msg: "Avatar updated", type: "success" },
-    settingsSaved: { msg: "Settings saved", type: "success" },
-    levelUp: { msg: "Level up!", type: "success" },
-  };
-
-  const notification = messages[action] || { msg: action, type: "info" };
-  showToast(
-    notification.msg + (details ? " " + details : ""),
-    notification.type,
-  );
-
-  // Send browser notification too
-  sendBrowserNotification("Skill Tree", notification.msg);
-}
-
-export function showToast(message, type = "info", duration = 3000) {
-  const container = document.getElementById("toastContainer");
+// ===== Toast Notifications =====
+export function notify(message, type = "info") {
+  const container = document.getElementById("toast-container");
   if (!container) return;
+
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  const icon =
-    type === "success"
-      ? "fa-check-circle"
-      : type === "error"
-        ? "fa-exclamation-circle"
-        : "fa-info-circle";
-  toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+
+  const icons = {
+    success: "fa-check-circle",
+    error: "fa-exclamation-circle",
+    warning: "fa-exclamation-triangle",
+    info: "fa-info-circle",
+  };
+
+  toast.innerHTML = `
+        <i class="fas ${icons[type] || icons.info}"></i>
+        <span>${message}</span>
+    `;
+
   container.appendChild(toast);
-  requestAnimationFrame(() => toast.classList.add("show"));
+
+  // Auto remove after 3 seconds
   setTimeout(() => {
-    toast.classList.remove("show");
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-20px)";
+    toast.style.transition = "all 0.3s ease";
     setTimeout(() => toast.remove(), 300);
-  }, duration);
+  }, 3000);
 }
 
-export function showModal(title, text, icon = "fa-unlock") {
-  const modal = document.getElementById("modal");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalText = document.getElementById("modalText");
-  const modalIcon = modal?.querySelector(".modal-icon i");
-  if (modalTitle) modalTitle.textContent = title;
-  if (modalText) modalText.textContent = text;
-  if (modalIcon) modalIcon.className = `fas ${icon}`;
-  if (modal) modal.classList.add("active");
+// ===== Notification Panel =====
+let notifications = [];
+let isNotificationsOpen = false;
+
+export async function loadNotifications() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return [];
+
+  // Load from activity_history (recent items) + pending friend requests
+  const { data: activities, error: actError } = await supabase
+    .from("activity_history")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (actError) console.error("Load activities error:", actError);
+
+  // Load pending friend requests as notifications
+  const requests = await loadFriendRequests();
+
+  const requestNotifications = requests.map((r) => ({
+    id: `req_${r.id}`,
+    type: "friend-request",
+    title: t("notifications.friendRequest", { name: r.username }),
+    message: r.email,
+    time: r.created_at,
+    read: false,
+    data: r,
+  }));
+
+  const activityNotifications = (activities || []).map((a) => ({
+    id: `act_${a.id}`,
+    type: a.type === "quest_complete" ? "quest-complete" : "skill-unlock",
+    title: a.title,
+    message: a.description,
+    time: a.created_at,
+    read: true,
+    data: a,
+  }));
+
+  notifications = [...requestNotifications, ...activityNotifications];
+  renderNotifications();
+  updateNotificationBadge();
+
+  return notifications;
 }
 
-export function closeModal() {
-  document.getElementById("modal")?.classList.remove("active");
-}
+export function renderNotifications() {
+  const list = document.getElementById("notification-list");
+  if (!list) return;
 
-export function updateXPBar() {
-  const xp = getUserXP();
-  const level = getUserLevel();
-  const percent = xp.max > 0 ? Math.round((xp.current / xp.max) * 100) : 0;
-
-  const fill = document.getElementById("xpProgress");
-  const text = document.getElementById("xpText");
-  const badge = document.getElementById("userLevelName");
-  const streak = document.getElementById("streakDisplay");
-
-  if (fill) fill.style.width = `${percent}%`;
-  if (text) text.textContent = `${xp.current} / ${xp.max} XP`;
-  if (badge) badge.textContent = `${getUserTitle()} (LVL ${level})`;
-  if (streak) {
-    const count = getUserStreak();
-    streak.innerHTML = `<i class="fas fa-fire"></i> ${count} ${t("days")}`;
+  if (notifications.length === 0) {
+    list.innerHTML = `<p class="empty-state">${t("notifications.empty")}</p>`;
+    return;
   }
-}
 
-export function updateUserStatusSummary() {
-  updateXPBar();
-}
+  list.innerHTML = notifications
+    .map((n) => {
+      const timeAgo = getTimeAgo(n.time);
+      const iconClass =
+        n.type === "friend-request"
+          ? "fa-user-plus"
+          : n.type === "quest-complete"
+            ? "fa-check-circle"
+            : "fa-star";
 
-let currentPage = "skillTree";
+      let actionsHtml = "";
+      if (n.type === "friend-request" && n.data) {
+        actionsHtml = `
+                <div class="notification-actions">
+                    <button class="btn-accept" data-action="acceptRequest" data-id="${n.data.id}">${t("friends.accept")}</button>
+                    <button class="btn-decline" data-action="declineRequest" data-id="${n.data.id}">${t("friends.decline")}</button>
+                </div>
+            `;
+      }
 
-export function navigateTo(page) {
-  document
-    .querySelectorAll(".page")
-    .forEach((p) => p.classList.remove("active"));
-  document
-    .querySelectorAll(".nav-link")
-    .forEach((n) => n.classList.remove("active"));
-
-  const targetPage = document.getElementById(`${page}Page`);
-  if (targetPage) targetPage.classList.add("active");
-
-  const targetNav = document.querySelector(`[data-page="${page}"]`);
-  if (targetNav) targetNav.classList.add("active");
-
-  currentPage = page;
-  window.dispatchEvent(new CustomEvent("pagechange", { detail: { page } }));
-}
-
-export function toggleMobileMenu() {
-  document.getElementById("navLinks")?.classList.toggle("mobile-open");
-}
-
-export function toggleDarkMode() {
-  const body = document.getElementById("appBody");
-  const isDark = body?.classList.contains("dark-mode");
-  if (isDark) {
-    body?.classList.remove("dark-mode");
-    body?.classList.add("light-mode");
-  } else {
-    body?.classList.remove("light-mode");
-    body?.classList.add("dark-mode");
-  }
-  updateThemeIcon();
-}
-
-export function updateThemeIcon() {
-  const body = document.getElementById("appBody");
-  const icon = document.getElementById("themeIcon");
-  const label = document.getElementById("themeLabel");
-  const isDark = body?.classList.contains("dark-mode");
-  if (icon) icon.className = isDark ? "fas fa-sun" : "fas fa-moon";
-  if (label) label.textContent = isDark ? t("lightMode") : t("darkMode");
-}
-
-export function setLanguage(lang) {
-  i18nSetLanguage(lang);
-  const arBtn = document.getElementById("langArBtn");
-  const enBtn = document.getElementById("langEnBtn");
-  if (arBtn) arBtn.classList.toggle("active", lang === "ar");
-  if (enBtn) enBtn.classList.toggle("active", lang === "en");
-  updateThemeIcon();
-  updateXPBar();
-}
-
-export function toggleThemeDropdown() {
-  document.getElementById("themeDropdownMenu")?.classList.toggle("hidden");
-}
-
-export function populateThemeDropdown(themes, currentTheme, onSelect) {
-  const menu = document.getElementById("themeDropdownMenu");
-  const currentName = document.getElementById("currentThemeName");
-  if (!menu) return;
-  if (currentName)
-    currentName.textContent = themes[currentTheme]?.name || currentTheme;
-
-  menu.innerHTML = Object.entries(themes)
-    .map(
-      ([key, theme]) => `
-    <div class="theme-option ${key === currentTheme ? "active" : ""}" data-theme="${key}">
-      <span class="theme-color-preview" style="background: ${theme.primary}"></span>
-      <span>${theme.name}</span>
-    </div>
-  `,
-    )
+      return `
+            <div class="notification-item ${n.read ? "" : "unread"} ${n.type}" data-notif-id="${n.id}">
+                <i class="fas ${iconClass}"></i>
+                <div class="notification-content">
+                    <p>${n.title}</p>
+                    <span class="time">${timeAgo}</span>
+                    ${actionsHtml}
+                </div>
+            </div>
+        `;
+    })
     .join("");
-
-  menu.querySelectorAll(".theme-option").forEach((opt) => {
-    opt.addEventListener("click", () => {
-      const themeKey = opt.dataset.theme;
-      onSelect(themeKey);
-      populateThemeDropdown(themes, themeKey, onSelect);
-      toggleThemeDropdown();
-    });
-  });
 }
 
-export function setupGlobalEventListeners() {
-  // Unified click handler for actions and pages
-  document.addEventListener("click", (e) => {
-    const target = e.target.closest("[data-action], [data-page]");
-    if (!target) return;
+export function toggleNotifications() {
+  const panel = document.getElementById("notification-panel");
+  if (!panel) return;
 
-    const action = target.dataset.action;
-    const page = target.dataset.page;
+  isNotificationsOpen = !isNotificationsOpen;
+  panel.classList.toggle("hidden", !isNotificationsOpen);
 
-    if (target.tagName === "A" || target.tagName === "BUTTON") {
-      e.preventDefault();
-    }
-
-    if (page) {
-      navigateTo(page);
-      return;
-    }
-
-    if (action) {
-      const mode = target.dataset.mode;
-      const lang = target.dataset.lang;
-
-      window.dispatchEvent(
-        new CustomEvent("appaction", {
-          detail: { action, mode, lang, element: target, originalEvent: e },
-          bubbles: true,
-        }),
-      );
-    }
-  });
-
-  // Listen for change events on file inputs (avatar upload)
-  document.addEventListener("change", (e) => {
-    const target = e.target.closest("[data-action]");
-    if (!target) return;
-    const action = target.dataset.action;
-    if (action === "handleAvatarChange") {
-      window.dispatchEvent(
-        new CustomEvent("appaction", {
-          detail: { action, element: target, originalEvent: e },
-          bubbles: true,
-        }),
-      );
-    }
-  });
-
-  // Close theme dropdown when clicking outside
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(".theme-dropdown-wrapper")) {
-      document.getElementById("themeDropdownMenu")?.classList.add("hidden");
-    }
-  });
+  if (isNotificationsOpen) {
+    loadNotifications();
+  }
 }
+
+export function closeNotifications() {
+  const panel = document.getElementById("notification-panel");
+  if (panel) panel.classList.add("hidden");
+  isNotificationsOpen = false;
+}
+
+export function markAllRead() {
+  notifications.forEach((n) => (n.read = true));
+  renderNotifications();
+  updateNotificationBadge();
+}
+
+export function updateNotificationBadge() {
+  const badge = document.getElementById("notification-badge");
+  if (!badge) return;
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  badge.textContent = unreadCount;
+  badge.classList.toggle("hidden", unreadCount === 0);
+}
+
+function getTimeAgo(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+
+  if (seconds < 60) return t("time.justNow");
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+// ===== Modal Helpers =====
+export function closeAllModals() {
+  document.querySelectorAll(".modal").forEach((m) => m.classList.add("hidden"));
+}
+
+export function showLoading(show = true) {
+  const overlay = document.getElementById("loading-overlay");
+  if (overlay) overlay.classList.toggle("hidden", !show);
+}
+
+// ===== Click Outside to Close =====
+document.addEventListener("click", (e) => {
+  const panel = document.getElementById("notification-panel");
+  const btn = document.getElementById("notification-btn");
+
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+    closeNotifications();
+  }
+});
