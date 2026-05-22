@@ -68,6 +68,7 @@ const XP_CONFIG = {
 let currentPage = "skillTree";
 let isSidebarCollapsed = false;
 let isDarkMode = true;
+let authInitialized = false;
 
 // ===== Initialization =====
 async function init() {
@@ -96,18 +97,26 @@ async function startApp() {
       return;
     }
 
-    document.getElementById("app").classList.remove("hidden");
-    document.getElementById("auth-overlay").classList.add("hidden");
+    // Show app, hide auth overlay
+    const appEl = document.getElementById("app");
+    const authOverlay = document.getElementById("auth-overlay");
+    if (appEl) appEl.classList.remove("hidden");
+    if (authOverlay) authOverlay.classList.add("hidden");
 
-    onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        window.location.href = "login.html";
-      }
-    });
+    // Setup auth state listener (only once)
+    if (!authInitialized) {
+      onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT" || !session) {
+          window.location.href = "login.html";
+        }
+      });
+      authInitialized = true;
+    }
 
     setupEventDelegation();
     initMobileNav();
 
+    // Load all data
     await renderProfilePage();
     await loadSkills();
     renderSkills();
@@ -124,7 +133,7 @@ async function startApp() {
     // Initialize XP display
     await initXpEngine();
 
-    // Check system preference for dark mode (no localStorage)
+    // Check system preference for dark mode
     if (
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: light)").matches
@@ -153,7 +162,6 @@ function initMobileNav() {
     });
   }
 
-  // Close sidebar when clicking nav links on mobile
   document.querySelectorAll(".nav-link").forEach((link) => {
     link.addEventListener("click", () => {
       if (window.innerWidth <= 768) {
@@ -162,7 +170,6 @@ function initMobileNav() {
     });
   });
 
-  // Close when clicking outside sidebar on mobile
   document.addEventListener("click", (e) => {
     const sidebar = document.getElementById("sidebar");
     const mobileToggle = document.getElementById("mobile-menu-toggle");
@@ -177,14 +184,12 @@ function initMobileNav() {
     }
   });
 
-  // Close on resize to desktop
   window.addEventListener("resize", () => {
     if (window.innerWidth > 768) {
       closeMobileSidebar();
     }
   });
 
-  // Escape key closes mobile nav too
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeMobileSidebar();
@@ -221,7 +226,6 @@ function setupEventDelegation() {
     e.preventDefault();
 
     switch (action) {
-      // Navigation
       case "navigate": {
         const page = target.dataset.page;
         if (page) navigateToPage(page);
@@ -232,7 +236,6 @@ function setupEventDelegation() {
         await handleLogout();
         break;
 
-      // Skills (View Only)
       case "viewSkill":
         if (id) {
           showLoading(true);
@@ -241,12 +244,10 @@ function setupEventDelegation() {
         }
         break;
 
-      // Quests
       case "completeQuest":
         if (id) {
           showLoading(true);
           const result = await completeQuest(id);
-          // Add XP on quest completion (quest-specific reward, default 10)
           const xpGain = result?.data?.xp_reward || 10;
           if (!result?.error) {
             await addXp(xpGain);
@@ -255,7 +256,6 @@ function setupEventDelegation() {
         }
         break;
 
-      // Profile Skills CRUD
       case "showAddSkill":
         openAddSkillModal();
         break;
@@ -286,7 +286,6 @@ function setupEventDelegation() {
         }
         break;
 
-      // Profile Quests CRUD
       case "showAddQuest":
         openAddQuestModal();
         break;
@@ -317,7 +316,6 @@ function setupEventDelegation() {
         }
         break;
 
-      // Friends
       case "switchTab": {
         const tab = target.dataset.tab;
         if (tab) switchTab(tab);
@@ -372,7 +370,6 @@ function setupEventDelegation() {
         }
         break;
 
-      // Notifications
       case "toggleNotifications":
         toggleNotifications();
         break;
@@ -381,14 +378,12 @@ function setupEventDelegation() {
         markAllRead();
         break;
 
-      // Profile
       case "changeAvatar": {
         const avatarInput = document.getElementById("avatar-input");
         if (avatarInput) avatarInput.click();
         break;
       }
 
-      // Settings
       case "changeLanguage": {
         const select = target;
         if (select) {
@@ -414,21 +409,18 @@ function setupEventDelegation() {
         }
         break;
 
-      // Color picker
       case "changeColor": {
         const color = target.dataset.color;
         if (color) setThemeColor(color);
         break;
       }
 
-      // Modals
       case "closeModal":
         closeAllModals();
         break;
     }
   });
 
-  // Sidebar toggle (desktop)
   const sidebarToggle = document.getElementById("sidebar-toggle");
   if (sidebarToggle) {
     sidebarToggle.addEventListener("click", () => {
@@ -438,7 +430,6 @@ function setupEventDelegation() {
     });
   }
 
-  // Avatar input
   const avatarInput = document.getElementById("avatar-input");
   if (avatarInput) {
     avatarInput.addEventListener("change", async (e) => {
@@ -448,7 +439,6 @@ function setupEventDelegation() {
     });
   }
 
-  // Friend search enter key
   const friendSearchInput = document.getElementById("friend-search-input");
   if (friendSearchInput) {
     friendSearchInput.addEventListener("keypress", async (e) => {
@@ -460,14 +450,12 @@ function setupEventDelegation() {
     });
   }
 
-  // Close modals on backdrop
   document.querySelectorAll(".modal").forEach((modal) => {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) closeAllModals();
     });
   });
 
-  // Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAllModals();
@@ -501,7 +489,6 @@ function navigateToPage(page) {
     p.classList.toggle("active", p.id === page);
   });
 
-  // Close mobile sidebar on navigation
   if (window.innerWidth <= 768) {
     closeMobileSidebar();
   }
@@ -544,7 +531,6 @@ async function handleResetLevel() {
   showLoading(true);
   await updateStats({ level: 1, xp: 0, gold: 0 });
 
-  // Refresh XP display via engine
   updateXpDisplay(calculateLevel(0));
 
   notify(t("settings.resetSuccess"), "success");
@@ -621,7 +607,6 @@ export async function addXp(amount) {
   const user = await getCurrentUser();
   if (!supabase || !user) return;
 
-  // Get current stats
   const { data: stats } = await supabase
     .from("user_stats")
     .select("xp, level, gold")
@@ -635,7 +620,6 @@ export async function addXp(amount) {
   const newXp = currentXp + amount;
   const newStats = calculateLevel(newXp);
 
-  // Update database
   const { error } = await supabase.from("user_stats").upsert(
     {
       user_id: user.id,
@@ -652,7 +636,6 @@ export async function addXp(amount) {
     return;
   }
 
-  // Level up notification
   if (newStats.level > currentLevel) {
     notify(
       `${t("xp.levelUp") || "Level Up!"} — ${getRankTitle(newStats.level)} (Lv.${newStats.level})`,
@@ -662,21 +645,18 @@ export async function addXp(amount) {
     notify(`+${amount} XP`, "info");
   }
 
-  // Update display
   updateXpDisplay(newStats);
 }
 
 export function updateXpDisplay(stats) {
   if (!stats) return;
 
-  // Header elements
   const headerLevelDisplay = document.getElementById("user-level-display");
   const headerXp = document.getElementById("user-xp");
   const headerRank = document.getElementById("user-rank");
   const headerXpText = document.getElementById("header-xp-text");
   const xpProgress = document.getElementById("xp-progress");
 
-  // Profile elements
   const profileLevel = document.getElementById("profile-level");
   const profileXp = document.getElementById("profile-xp");
   const profileRank = document.getElementById("profile-rank");

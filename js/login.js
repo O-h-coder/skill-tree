@@ -231,6 +231,19 @@ async function checkSession() {
   }
 }
 
+// ===== Event Delegation (fixes switchAuth button) =====
+document.addEventListener("click", (e) => {
+  const target = e.target.closest("[data-action]");
+  if (!target) return;
+
+  const action = target.dataset.action;
+
+  if (action === "switchAuth") {
+    e.preventDefault();
+    toggleAuthMode();
+  }
+});
+
 // Event listeners
 document.addEventListener("DOMContentLoaded", () => {
   init();
