@@ -31,12 +31,14 @@ export async function signUp(email, password, username) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username } },
+    options: {
+      data: { username },
+      emailRedirectTo: window.location.origin + "/login.html",
+    },
   });
 
   if (error) return { error };
 
-  // Create profile
   if (data.user) {
     const { error: profileError } = await supabase.from("profiles").insert([
       {
@@ -50,7 +52,6 @@ export async function signUp(email, password, username) {
 
     if (profileError) console.error("Profile creation error:", profileError);
 
-    // Create user_stats
     const { error: statsError } = await supabase.from("user_stats").insert([
       {
         user_id: data.user.id,

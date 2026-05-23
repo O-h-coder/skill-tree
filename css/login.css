@@ -3,7 +3,7 @@
   --login-bg-start: #0f172a;
   --login-bg-end: #1e1b4b;
   --login-bg-mid: #312e81;
-  --login-card-bg: rgba(30, 41, 59, 0.9);
+  --login-card-bg: rgba(30, 41, 59, 0.95);
   --login-card-border: rgba(99, 102, 241, 0.3);
   --login-text: #f1f5f9;
   --login-muted: #94a3b8;
@@ -22,12 +22,12 @@
   --login-spinner-track: #334155;
 }
 
-/* Light Mode — class-based toggle */
+/* Light Mode */
 .light-mode {
   --login-bg-start: #f8fafc;
   --login-bg-end: #e2e8f0;
   --login-bg-mid: #cbd5e1;
-  --login-card-bg: rgba(255, 255, 255, 0.95);
+  --login-card-bg: rgba(255, 255, 255, 0.98);
   --login-card-border: rgba(99, 102, 241, 0.2);
   --login-text: #1e293b;
   --login-muted: #64748b;
@@ -44,32 +44,6 @@
   --login-success: #059669;
   --login-error: #dc2626;
   --login-spinner-track: #e2e8f0;
-}
-
-/* System preference fallback */
-@media (prefers-color-scheme: light) {
-  :root:not(.dark-mode) {
-    --login-bg-start: #f8fafc;
-    --login-bg-end: #e2e8f0;
-    --login-bg-mid: #cbd5e1;
-    --login-card-bg: rgba(255, 255, 255, 0.95);
-    --login-card-border: rgba(99, 102, 241, 0.2);
-    --login-text: #1e293b;
-    --login-muted: #64748b;
-    --login-input-bg: #ffffff;
-    --login-input-border: #cbd5e1;
-    --login-input-focus: #6366f1;
-    --login-primary: #6366f1;
-    --login-primary-hover: #4f46e5;
-    --login-primary-gradient-start: #6366f1;
-    --login-primary-gradient-end: #4f46e5;
-    --login-shadow: rgba(0, 0, 0, 0.1);
-    --login-toast-bg: #ffffff;
-    --login-toast-border: #6366f1;
-    --login-success: #059669;
-    --login-error: #dc2626;
-    --login-spinner-track: #e2e8f0;
-  }
 }
 
 /* ===== Layout ===== */
@@ -96,13 +70,13 @@
   width: 100%;
   max-width: 420px;
   box-shadow: 0 20px 40px var(--login-shadow);
+  position: relative;
 }
 
 /* ===== Header ===== */
 .login-header {
   text-align: center;
   margin-bottom: 32px;
-  position: relative;
 }
 
 .login-header .logo {
@@ -127,25 +101,25 @@
 .login-header p {
   color: var(--login-muted);
   font-size: 14px;
+  margin: 0;
 }
 
-/* Action buttons (lang + theme) */
+/* Action buttons (lang + theme) — fixed positioning */
 .login-actions {
-  position: absolute;
-  top: -20px;
-  left: -20px;
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .icon-btn {
   background: none;
   border: 1px solid var(--login-card-border);
   color: var(--login-muted);
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -155,13 +129,14 @@
 .icon-btn:hover {
   color: var(--login-primary);
   border-color: var(--login-primary);
+  background: rgba(99, 102, 241, 0.1);
 }
 
 /* ===== Toast ===== */
 #toast-container {
   position: fixed;
   top: 20px;
-  left: 20px;
+  right: 20px;
   z-index: 10000;
   display: flex;
   flex-direction: column;
@@ -171,16 +146,15 @@
 .toast {
   background: var(--login-toast-bg);
   border-right: 4px solid var(--login-toast-border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 14px 20px;
   min-width: 280px;
+  max-width: 360px;
   box-shadow: 0 10px 15px var(--login-shadow);
   display: flex;
   align-items: center;
   gap: 12px;
-  animation:
-    slideIn 0.3s ease,
-    fadeOut 0.3s ease 2.7s forwards;
+  animation: slideIn 0.3s ease;
 }
 
 .toast.success {
@@ -192,6 +166,7 @@
 
 .toast i {
   font-size: 18px;
+  flex-shrink: 0;
 }
 .toast.success i {
   color: var(--login-success);
@@ -202,21 +177,12 @@
 
 @keyframes slideIn {
   from {
-    transform: translateX(-100%);
+    transform: translateX(100%);
     opacity: 0;
   }
   to {
     transform: translateX(0);
     opacity: 1;
-  }
-}
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-20px);
   }
 }
 
@@ -232,6 +198,7 @@
   margin-bottom: 8px;
   color: var(--login-muted);
   font-size: 14px;
+  font-weight: 500;
 }
 
 .form-group input {
@@ -271,6 +238,9 @@
   cursor: pointer;
   font-size: 16px;
   padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toggle-password:hover {
@@ -290,6 +260,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-family: inherit;
 }
 
 .btn-primary {
@@ -321,6 +292,12 @@
 .auth-switch p {
   color: var(--login-muted);
   font-size: 14px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .text-btn {
@@ -331,10 +308,12 @@
   font-size: 14px;
   font-weight: 600;
   transition: color 0.3s;
+  padding: 0;
 }
 
 .text-btn:hover {
   color: var(--login-primary-hover);
+  text-decoration: underline;
 }
 
 /* ===== Loading ===== */
@@ -377,13 +356,22 @@
     font-size: 24px;
   }
 
-  .login-actions {
-    top: -10px;
-    left: -10px;
+  .login-header .logo i {
+    font-size: 40px;
   }
 
   .icon-btn {
-    padding: 5px 8px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  #toast-container {
+    right: 10px;
+    left: 10px;
+    align-items: stretch;
+  }
+
+  .toast {
+    min-width: unset;
   }
 }

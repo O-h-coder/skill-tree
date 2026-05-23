@@ -169,7 +169,7 @@ export async function loadProfileSkills() {
   return currentSkills;
 }
 
-export async function addSkill(name, description, icon, color) {
+export async function addSkill(name, description, icon, color, xpReward) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
@@ -185,6 +185,8 @@ export async function addSkill(name, description, icon, color) {
         description: description?.trim() || "",
         icon: icon || "fa-star",
         color: color || "#6366f1",
+        xp_reward: parseInt(xpReward) || 25,
+        completed: false,
         created_at: new Date().toISOString(),
       },
     ])
@@ -215,6 +217,7 @@ export async function editSkill(skillId, updates) {
       description: updates.description?.trim(),
       icon: updates.icon,
       color: updates.color,
+      xp_reward: parseInt(updates.xp_reward) || 25,
       updated_at: new Date().toISOString(),
     })
     .eq("id", skillId)
@@ -436,13 +439,12 @@ export async function renderProfilePage() {
   if (headerXp) headerXp.textContent = `${stats?.xp || 0} XP`;
   if (headerGold) headerGold.textContent = `${stats?.gold || 0} Gold`;
 
-  // Update XP display via engine if available
   if (typeof updateXpDisplay === "function" && stats?.xp !== undefined) {
     try {
       const { calculateLevel } = await import("./app.js");
       updateXpDisplay(calculateLevel(stats.xp));
     } catch (e) {
-      // app.js not loaded yet or circular import, ignore
+      // ignore
     }
   }
 }
@@ -486,8 +488,8 @@ export function renderProfileSkills() {
         <i class="fas ${s.icon}"></i>
       </div>
       <div class="profile-item-content">
-        <h4>${s.name}</h4>
-        <p>${s.description || ""}</p>
+        <h4>${s.name} ${s.completed ? '<span style="color: var(--secondary); font-size: 12px;"><i class="fas fa-check"></i></span>' : ""}</h4>
+        <p>${s.description || ""} — <span style="color: var(--warning)">${s.xp_reward || 25} XP</span></p>
       </div>
       <div class="profile-item-actions">
         <button class="btn-edit" data-action="editProfileSkill" data-id="${s.id}" title="${t("common.edit")}">
@@ -560,6 +562,8 @@ export async function renderActivityLog() {
     quest: t("activity.quest"),
   };
 
+  const currentLang = document.documentElement.lang || "ar";
+
   list.innerHTML = activities
     .map((a) => {
       const date = new Date(a.created_at);
@@ -603,6 +607,7 @@ export function openAddSkillModal() {
     document.getElementById("new-skill-description").value = "";
     document.getElementById("new-skill-icon").value = "fa-star";
     document.getElementById("new-skill-color").value = "#6366f1";
+    document.getElementById("new-skill-xp").value = "25";
   }
 }
 
@@ -621,6 +626,7 @@ export function openEditSkillModal(skillId) {
     document.getElementById("edit-skill-icon").value = skill.icon || "fa-star";
     document.getElementById("edit-skill-color").value =
       skill.color || "#6366f1";
+    document.getElementById("edit-skill-xp").value = skill.xp_reward || 25;
   }
 }
 
@@ -630,13 +636,20 @@ export async function saveSkillEdit() {
   const desc = document.getElementById("edit-skill-description")?.value;
   const icon = document.getElementById("edit-skill-icon")?.value;
   const color = document.getElementById("edit-skill-color")?.value;
+  const xp = document.getElementById("edit-skill-xp")?.value;
 
   if (!name?.trim()) {
     notify(t("profile.nameRequired"), "error");
     return;
   }
 
-  await editSkill(editingSkillId, { name, description: desc, icon, color });
+  await editSkill(editingSkillId, {
+    name,
+    description: desc,
+    icon,
+    color,
+    xp_reward: xp,
+  });
   closeModal("edit-skill-modal");
   editingSkillId = null;
 }
@@ -646,13 +659,14 @@ export async function saveNewSkill() {
   const desc = document.getElementById("new-skill-description")?.value;
   const icon = document.getElementById("new-skill-icon")?.value || "fa-star";
   const color = document.getElementById("new-skill-color")?.value || "#6366f1";
+  const xp = document.getElementById("new-skill-xp")?.value || "25";
 
   if (!name?.trim()) {
     notify(t("profile.nameRequired"), "error");
     return;
   }
 
-  await addSkill(name, desc, icon, color);
+  await addSkill(name, desc, icon, color, xp);
   closeModal("add-skill-modal");
 }
 

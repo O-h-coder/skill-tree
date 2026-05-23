@@ -520,6 +520,10 @@
             <label data-i18n="skills.color">اللون</label>
             <input type="color" id="new-skill-color" value="#6366f1" />
           </div>
+          <div class="form-group">
+            <label data-i18n="skills.xpReward">مكافأة الخبرة</label>
+            <input type="number" id="new-skill-xp" value="25" min="1" />
+          </div>
         </div>
         <div class="modal-footer">
           <button
@@ -576,6 +580,10 @@
             <label data-i18n="skills.color">اللون</label>
             <input type="color" id="edit-skill-color" value="#6366f1" />
           </div>
+          <div class="form-group">
+            <label data-i18n="skills.xpReward">مكافأة الخبرة</label>
+            <input type="number" id="edit-skill-xp" value="25" min="1" />
+          </div>
         </div>
         <div class="modal-footer">
           <button
@@ -596,7 +604,7 @@
       </div>
     </div>
 
-    <!-- Skill Detail Modal (View Only) -->
+    <!-- Skill Detail Modal (View + Complete) -->
     <div id="skill-detail-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
@@ -621,6 +629,7 @@
             id="detail-skill-description"
             style="font-size: 16px; color: var(--text-muted); line-height: 1.6"
           ></p>
+          <div id="detail-skill-actions" style="margin-top: 24px"></div>
         </div>
         <div class="modal-footer">
           <button

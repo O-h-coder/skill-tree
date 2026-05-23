@@ -23,7 +23,9 @@ function notify(message, type = "info") {
   container.appendChild(toast);
 
   setTimeout(() => {
-    toast.style.animation = "fadeOut 0.3s ease forwards";
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(20px)";
+    toast.style.transition = "all 0.3s ease";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
@@ -51,11 +53,6 @@ function toggleAuthMode() {
   }
 }
 
-/**
- * Check if an account exists using Supabase RPC function.
- * This bypasses RLS by using SECURITY DEFINER on the server side.
- * Returns: true (exists), false (not found), null (error).
- */
 async function checkAccountExists(email) {
   const supabase = getSupabase();
   if (!supabase) return null;
@@ -64,12 +61,10 @@ async function checkAccountExists(email) {
     const { data, error } = await supabase.rpc("check_account_exists", {
       p_email: email,
     });
-
     if (error) {
       console.error("Account check RPC error:", error);
       return null;
     }
-
     return !!data;
   } catch (err) {
     console.error("Account check exception:", err);
@@ -87,7 +82,6 @@ async function handleLogin(e) {
     return;
   }
 
-  // Check account existence before attempting login
   showLoading(true);
   const exists = await checkAccountExists(email);
 
@@ -101,6 +95,18 @@ async function handleLogin(e) {
   showLoading(false);
 
   if (error) {
+    // Handle "Email not confirmed" specifically
+    if (
+      error.message &&
+      error.message.toLowerCase().includes("email not confirmed")
+    ) {
+      notify(
+        t("login.emailNotConfirmed") ||
+          "البريد الإلكتروني غير مفعل. تحقق من بريدك أو تواصل مع المسؤول.",
+        "warning",
+      );
+      return;
+    }
     notify(error.message, "error");
     return;
   }
@@ -131,23 +137,37 @@ async function handleRegister(e) {
 
   showLoading(true);
   const { data, error } = await signUp(email, password, username);
-  showLoading(false);
 
   if (error) {
+    showLoading(false);
     notify(error.message, "error");
     return;
   }
 
-  notify(t("login.registerSuccess"), "success");
-  setTimeout(() => {
-    toggleAuthMode();
-  }, 1500);
+  // Try auto-login after successful registration
+  const { data: loginData, error: loginError } = await signIn(email, password);
+  showLoading(false);
+
+  if (!loginError && loginData?.session) {
+    notify(t("login.registerSuccess"), "success");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 1000);
+    return;
+  }
+
+  // If auto-login failed (likely email confirmation required)
+  notify(
+    t("login.registerSuccessVerify") ||
+      "تم إنشاء الحساب! تحقق من بريدك لتفعيله، أو تواصل مع المسؤول لتفعيله يدوياً.",
+    "success",
+  );
+  toggleAuthMode();
 }
 
 function togglePasswordVisibility(e) {
   const btn = e.currentTarget;
-  const input =
-    btn.previousElementSibling || btn.parentElement.querySelector("input");
+  const input = btn.parentElement.querySelector("input");
   if (!input) return;
 
   if (input.type === "password") {
@@ -159,9 +179,6 @@ function togglePasswordVisibility(e) {
   }
 }
 
-/**
- * Toggle between Arabic and English
- */
 function toggleLanguage() {
   const currentLang = document.documentElement.lang || "ar";
   const newLang = currentLang === "ar" ? "en" : "ar";
@@ -178,7 +195,6 @@ function toggleLanguage() {
     langLabel.textContent = newLang === "ar" ? "EN" : "AR";
   }
 
-  // Re-render auth switch text to apply new translations
   const switchText = document.getElementById("switch-text");
   if (switchText) {
     if (isLoginMode) {
@@ -189,9 +205,6 @@ function toggleLanguage() {
   }
 }
 
-/**
- * Toggle dark / light theme
- */
 function toggleTheme() {
   const body = document.body;
   const isLight = body.classList.toggle("light-mode");
@@ -203,7 +216,6 @@ function toggleTheme() {
 }
 
 async function init() {
-  // Load Supabase library
   if (!window.supabase) {
     const script = document.createElement("script");
     script.src =
@@ -231,7 +243,7 @@ async function checkSession() {
   }
 }
 
-// ===== Event Delegation (fixes switchAuth button) =====
+// ===== Event Delegation =====
 document.addEventListener("click", (e) => {
   const target = e.target.closest("[data-action]");
   if (!target) return;
@@ -258,12 +270,10 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", togglePasswordVisibility);
   });
 
-  // Language toggle
   document.querySelectorAll('[data-action="toggleLang"]').forEach((btn) => {
     btn.addEventListener("click", toggleLanguage);
   });
 
-  // Theme toggle
   document.querySelectorAll('[data-action="toggleTheme"]').forEach((btn) => {
     btn.addEventListener("click", toggleTheme);
   });

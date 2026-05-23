@@ -35,7 +35,12 @@ import {
   updateStats,
   closeModal,
 } from "./user.js";
-import { loadSkills, renderSkills, viewSkill } from "./skills.js";
+import {
+  loadSkills,
+  renderSkills,
+  viewSkill,
+  completeSkill,
+} from "./skills.js";
 import { loadQuests, renderQuests, completeQuest } from "./quests.js";
 import {
   loadFriends,
@@ -63,6 +68,27 @@ const XP_CONFIG = {
     A: { min: 41, max: 50, title: "A-Rank Hunter" },
     S: { min: 51, max: Infinity, title: "S-Rank Hunter" },
   },
+};
+
+// ===== Global Theme Colors =====
+const THEME_COLORS = {
+  indigo: {
+    primary: "#6366f1",
+    primaryDark: "#4f46e5",
+    primaryLight: "#818cf8",
+  },
+  emerald: {
+    primary: "#10b981",
+    primaryDark: "#059669",
+    primaryLight: "#34d399",
+  },
+  rose: { primary: "#f43f5e", primaryDark: "#e11d48", primaryLight: "#fb7185" },
+  amber: {
+    primary: "#f59e0b",
+    primaryDark: "#d97706",
+    primaryLight: "#fbbf24",
+  },
+  cyan: { primary: "#06b6d4", primaryDark: "#0891b2", primaryLight: "#22d3ee" },
 };
 
 let currentPage = "skillTree";
@@ -97,13 +123,11 @@ async function startApp() {
       return;
     }
 
-    // Show app, hide auth overlay
     const appEl = document.getElementById("app");
     const authOverlay = document.getElementById("auth-overlay");
     if (appEl) appEl.classList.remove("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
 
-    // Setup auth state listener (only once)
     if (!authInitialized) {
       onAuthStateChange((event, session) => {
         if (event === "SIGNED_OUT" || !session) {
@@ -116,7 +140,6 @@ async function startApp() {
     setupEventDelegation();
     initMobileNav();
 
-    // Load all data
     await renderProfilePage();
     await loadSkills();
     renderSkills();
@@ -130,10 +153,9 @@ async function startApp() {
     await loadNotifications();
     setLoadFriendRequestsFn(loadFriendRequests);
 
-    // Initialize XP display
     await initXpEngine();
+    await loadThemeColor();
 
-    // Check system preference for dark mode
     if (
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: light)").matches
@@ -240,6 +262,14 @@ function setupEventDelegation() {
         if (id) {
           showLoading(true);
           await viewSkill(id);
+          showLoading(false);
+        }
+        break;
+
+      case "completeSkill":
+        if (id) {
+          showLoading(true);
+          await completeSkill(id);
           showLoading(false);
         }
         break;
@@ -695,10 +725,61 @@ export async function initXpEngine() {
   updateXpDisplay(levelStats);
 }
 
-// ===== Theme =====
-function setThemeColor(color) {
-  document.documentElement.style.setProperty("--primary", color);
-  document.documentElement.style.setProperty("--primary-dark", color);
+// ===== Global Theme =====
+export function setThemeColor(colorName) {
+  const colors = THEME_COLORS[colorName];
+  if (!colors) return;
+
+  const root = document.documentElement;
+  root.style.setProperty("--primary", colors.primary);
+  root.style.setProperty("--primary-dark", colors.primaryDark);
+  root.style.setProperty("--primary-light", colors.primaryLight);
+
+  // Update active button state
+  document.querySelectorAll(".color-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.color === colorName);
+  });
+
+  // Save to profile
+  saveThemeColor(colorName);
+}
+
+async function saveThemeColor(colorName) {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return;
+
+  await supabase
+    .from("profiles")
+    .update({ theme_color: colorName })
+    .eq("id", user.id);
+}
+
+export async function loadThemeColor() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("theme_color")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !data?.theme_color) return;
+
+  const colorName = data.theme_color;
+  const colors = THEME_COLORS[colorName];
+  if (!colors) return;
+
+  const root = document.documentElement;
+  root.style.setProperty("--primary", colors.primary);
+  root.style.setProperty("--primary-dark", colors.primaryDark);
+  root.style.setProperty("--primary-light", colors.primaryLight);
+
+  document.querySelectorAll(".color-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.color === colorName);
+  });
 }
 
 function toggleDarkMode() {
