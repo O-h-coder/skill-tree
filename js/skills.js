@@ -1,4 +1,4 @@
-// ===== Skills Module (Lock → Complete → XP) =====
+// ===== Skills Module (Click-to-Complete, No Modal) =====
 import { getSupabase } from "./supabase.js";
 import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
@@ -28,54 +28,6 @@ export async function loadSkills() {
   return currentSkills;
 }
 
-export async function viewSkill(skillId) {
-  const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
-
-  const skill = currentSkills.find((s) => s.id === skillId);
-  if (!skill) return;
-
-  await logActivity(
-    "view",
-    "skill",
-    skillId,
-    skill.name,
-    `Viewed skill: ${skill.name}`,
-  );
-
-  const modal = document.getElementById("skill-detail-modal");
-  const nameEl = document.getElementById("detail-skill-name");
-  const descEl = document.getElementById("detail-skill-description");
-  const iconEl = document.getElementById("detail-skill-icon");
-  const actionsEl = document.getElementById("detail-skill-actions");
-
-  if (modal) modal.classList.remove("hidden");
-  if (nameEl) nameEl.textContent = skill.name;
-  if (descEl)
-    descEl.textContent = skill.description || t("skills.noDescription");
-  if (iconEl) {
-    iconEl.innerHTML = `<i class="fas ${skill.icon || "fa-star"}"></i>`;
-    iconEl.style.background = `${skill.color || "#6366f1"}20`;
-    iconEl.style.color = skill.color || "#6366f1";
-  }
-
-  // Show complete button only if not completed
-  if (actionsEl) {
-    if (skill.completed) {
-      actionsEl.innerHTML = `
-        <span class="badge-completed"><i class="fas fa-check-circle"></i> ${t("skills.completed")}</span>
-      `;
-    } else {
-      actionsEl.innerHTML = `
-        <button class="btn btn-primary" data-action="completeSkill" data-id="${skill.id}">
-          <i class="fas fa-check"></i> ${t("skills.complete")}
-        </button>
-      `;
-    }
-  }
-}
-
 export async function completeSkill(skillId) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
@@ -87,14 +39,16 @@ export async function completeSkill(skillId) {
 
   const xpReward = parseInt(skill.xp_reward) || 25;
 
-  const { error } = await supabase
+  const { data: updatedSkill, error } = await supabase
     .from("skills")
     .update({
       completed: true,
       completed_at: new Date().toISOString(),
     })
     .eq("id", skillId)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select()
+    .single();
 
   if (error) {
     console.error("Complete skill error:", error);
@@ -123,11 +77,7 @@ export async function completeSkill(skillId) {
   await loadSkills();
   renderSkills();
 
-  // Close modal if open
-  const modal = document.getElementById("skill-detail-modal");
-  if (modal) modal.classList.add("hidden");
-
-  return { success: true };
+  return { data: updatedSkill, error: null };
 }
 
 export function renderSkills() {
@@ -149,8 +99,14 @@ export function renderSkills() {
       const cardClass = isCompleted ? "completed" : "locked";
       const xpText = `${skill.xp_reward || 25} XP`;
 
+      // If completed: just display, no click action. If not: click to complete.
+      const clickAction = isCompleted
+        ? ""
+        : `data-action="completeSkill" data-id="${skill.id}"`;
+      const cursorStyle = isCompleted ? "" : "cursor: pointer;";
+
       return `
-    <div class="skill-card ${cardClass}" data-skill-id="${skill.id}" data-action="viewSkill" data-id="${skill.id}">
+    <div class="skill-card ${cardClass}" data-skill-id="${skill.id}" ${clickAction} style="${cursorStyle}">
       <div class="skill-icon" style="background: ${skill.color || "#6366f1"}20; color: ${skill.color || "#6366f1"}">
         <i class="fas ${skill.icon || "fa-star"}"></i>
       </div>
@@ -165,9 +121,4 @@ export function renderSkills() {
   `;
     })
     .join("");
-}
-
-export function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add("hidden");
 }

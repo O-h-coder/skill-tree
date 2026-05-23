@@ -80,7 +80,7 @@ export async function uploadAvatar(file) {
     return { error: new Error("Invalid image format") };
 
   const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-  const filePath = `avatars/${fileName}`;
+  const filePath = fileName; // Upload directly to bucket root, no folder
 
   const { error: uploadError } = await supabase.storage
     .from("profiles")
@@ -421,27 +421,24 @@ export async function renderProfilePage() {
 
   const levelEl = document.getElementById("profile-level");
   const xpEl = document.getElementById("profile-xp");
-  const goldEl = document.getElementById("profile-gold");
   const friendsEl = document.getElementById("profile-friends");
 
   if (levelEl) levelEl.textContent = stats?.level || 1;
   if (xpEl) xpEl.textContent = stats?.xp || 0;
-  if (goldEl) goldEl.textContent = stats?.gold || 0;
 
   const friendCount = await getFriendCount();
   if (friendsEl) friendsEl.textContent = friendCount;
 
   const headerLevel = document.getElementById("user-level");
   const headerXp = document.getElementById("user-xp");
-  const headerGold = document.getElementById("user-gold");
 
   if (headerLevel) headerLevel.textContent = `Level ${stats?.level || 1}`;
   if (headerXp) headerXp.textContent = `${stats?.xp || 0} XP`;
-  if (headerGold) headerGold.textContent = `${stats?.gold || 0} Gold`;
 
-  if (typeof updateXpDisplay === "function" && stats?.xp !== undefined) {
+  // Update XP display via app.js engine
+  if (stats?.xp !== undefined) {
     try {
-      const { calculateLevel } = await import("./app.js");
+      const { calculateLevel, updateXpDisplay } = await import("./app.js");
       updateXpDisplay(calculateLevel(stats.xp));
     } catch (e) {
       // ignore

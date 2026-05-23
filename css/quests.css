@@ -21,10 +21,6 @@
   box-shadow: var(--shadow);
 }
 
-.quest-card.completed {
-  opacity: 0.6;
-}
-
 .quest-checkbox {
   width: 24px;
   height: 24px;
@@ -44,13 +40,6 @@
   background: rgba(99, 102, 241, 0.1);
 }
 
-.quest-checkbox.completed {
-  background: var(--secondary);
-  border-color: var(--secondary);
-  color: white;
-  cursor: default;
-}
-
 .quest-content {
   flex: 1;
 }
@@ -59,11 +48,6 @@
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 4px;
-}
-
-.quest-title.completed {
-  text-decoration: line-through;
-  color: var(--text-muted);
 }
 
 .quest-description {
@@ -78,16 +62,4 @@
   font-size: 13px;
   color: var(--warning);
   flex-shrink: 0;
-}
-
-.completed-quests {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
-}
-
-.completed-quests h4 {
-  color: var(--text-muted);
-  margin-bottom: 16px;
-  font-size: 16px;
 }

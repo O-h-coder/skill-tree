@@ -71,6 +71,5 @@ export const DEFAULT_SKILLS = [
 ];
 
 export const XP_PER_LEVEL = 100;
-export const INITIAL_GOLD = 0;
 export const INITIAL_XP = 0;
 export const INITIAL_LEVEL = 1;

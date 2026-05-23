@@ -3,7 +3,7 @@ import { getSupabase } from "./supabase.js";
 import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
 import { notify } from "./utils.js";
-import { updateStats, loadUserStats, logActivity } from "./user.js";
+import { logActivity } from "./user.js";
 
 let currentQuests = [];
 
@@ -16,6 +16,7 @@ export async function loadQuests() {
     .from("quests")
     .select("*")
     .eq("user_id", user.id)
+    .eq("completed", false)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -53,7 +54,7 @@ export async function completeQuest(questId) {
     return { error: updateError };
   }
 
-  // Log activity (XP is handled by app.js addXp engine)
+  // Log activity
   await logActivity(
     "complete",
     "quest",
@@ -72,21 +73,16 @@ export async function completeQuest(questId) {
 
 export function renderQuests() {
   const list = document.getElementById("quests-list");
-  const completedSection = document.getElementById("completed-quests");
-  const completedList = document.getElementById("completed-list");
-
   if (!list) return;
 
-  const activeQuests = currentQuests.filter((q) => !q.completed);
-  const completedQuests = currentQuests.filter((q) => q.completed);
-
-  // Active quests
-  if (activeQuests.length === 0) {
+  if (currentQuests.length === 0) {
     list.innerHTML = `<div class="empty-state">${t("quests.noQuests")}</div>`;
-  } else {
-    list.innerHTML = activeQuests
-      .map(
-        (quest) => `
+    return;
+  }
+
+  list.innerHTML = currentQuests
+    .map(
+      (quest) => `
       <div class="quest-card" data-quest-id="${quest.id}">
         <button class="quest-checkbox" data-action="completeQuest" data-id="${quest.id}">
           <i class="fas fa-check"></i>
@@ -98,32 +94,6 @@ export function renderQuests() {
         <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} <span data-i18n="profile.xp">XP</span></span>
       </div>
     `,
-      )
-      .join("");
-  }
-
-  // Completed quests
-  if (completedList) {
-    if (completedQuests.length === 0) {
-      if (completedSection) completedSection.classList.add("hidden");
-    } else {
-      if (completedSection) completedSection.classList.remove("hidden");
-      completedList.innerHTML = completedQuests
-        .map(
-          (quest) => `
-        <div class="quest-card completed" data-quest-id="${quest.id}">
-          <div class="quest-checkbox completed">
-            <i class="fas fa-check"></i>
-          </div>
-          <div class="quest-content">
-            <h4 class="quest-title completed">${quest.title}</h4>
-            <p class="quest-description">${quest.description || ""}</p>
-          </div>
-          <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} <span data-i18n="profile.xp">XP</span></span>
-        </div>
-      `,
-        )
-        .join("");
-    }
-  }
+    )
+    .join("");
 }

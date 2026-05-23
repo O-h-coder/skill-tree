@@ -35,12 +35,7 @@ import {
   updateStats,
   closeModal,
 } from "./user.js";
-import {
-  loadSkills,
-  renderSkills,
-  viewSkill,
-  completeSkill,
-} from "./skills.js";
+import { loadSkills, renderSkills, completeSkill } from "./skills.js";
 import { loadQuests, renderQuests, completeQuest } from "./quests.js";
 import {
   loadFriends,
@@ -130,7 +125,8 @@ async function startApp() {
 
     if (!authInitialized) {
       onAuthStateChange((event, session) => {
-        if (event === "SIGNED_OUT" || !session) {
+        // Only redirect on explicit sign-out to avoid init-time redirect loops
+        if (event === "SIGNED_OUT") {
           window.location.href = "login.html";
         }
       });
@@ -258,18 +254,14 @@ function setupEventDelegation() {
         await handleLogout();
         break;
 
-      case "viewSkill":
-        if (id) {
-          showLoading(true);
-          await viewSkill(id);
-          showLoading(false);
-        }
-        break;
-
       case "completeSkill":
         if (id) {
           showLoading(true);
-          await completeSkill(id);
+          const result = await completeSkill(id);
+          const xpGain = result?.data?.xp_reward || 25;
+          if (!result?.error) {
+            await addXp(xpGain);
+          }
           showLoading(false);
         }
         break;
@@ -559,7 +551,7 @@ async function handleResetLevel() {
   if (!supabase || !user) return;
 
   showLoading(true);
-  await updateStats({ level: 1, xp: 0, gold: 0 });
+  await updateStats({ level: 1, xp: 0 });
 
   updateXpDisplay(calculateLevel(0));
 
@@ -639,13 +631,12 @@ export async function addXp(amount) {
 
   const { data: stats } = await supabase
     .from("user_stats")
-    .select("xp, level, gold")
+    .select("xp, level")
     .eq("user_id", user.id)
     .single();
 
   const currentXp = stats?.xp || 0;
   const currentLevel = stats?.level || 1;
-  const currentGold = stats?.gold || 0;
 
   const newXp = currentXp + amount;
   const newStats = calculateLevel(newXp);
@@ -655,7 +646,6 @@ export async function addXp(amount) {
       user_id: user.id,
       xp: newXp,
       level: newStats.level,
-      gold: currentGold,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

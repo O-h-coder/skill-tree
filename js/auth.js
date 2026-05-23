@@ -57,7 +57,6 @@ export async function signUp(email, password, username) {
         user_id: data.user.id,
         level: 1,
         xp: 0,
-        gold: 0,
         updated_at: new Date().toISOString(),
       },
     ]);
