@@ -1,7 +1,7 @@
 // ===== i18n =====
 const dictionary = {
   ar: {
-    "app.title": "Skill Tree - Solo Leveling",
+    "app.title": "شجره المهارات",
     loading: "جاري فتح البوابة...",
     "auth.pleaseLogin": "يجب تسجيل الدخول للدخول إلى الدنجن",
     "auth.login": "تسجيل الدخول",
@@ -101,7 +101,7 @@ const dictionary = {
     "common.edit": "تعديل",
     "common.confirmDelete": "هل أنت متأكد من الحذف؟",
     "login.title": "تسجيل الدخول - Skill Tree",
-    "login.subtitle": "ارتقِ بمهاراتك كما في Solo Leveling",
+    "login.subtitle": "طور مهاراتك وتخطي حدودك",
     "login.email": "البريد الإلكتروني",
     "login.password": "كلمة المرور",
     "login.username": "اسم المستخدم",
@@ -120,7 +120,7 @@ const dictionary = {
     "xp.levelUp": "ترقية مستوى!",
   },
   en: {
-    "app.title": "Skill Tree - Solo Leveling",
+    "app.title": "Skill Tree",
     loading: "Opening the gate...",
     "auth.pleaseLogin": "You must login to enter the dungeon",
     "auth.login": "Login",
@@ -221,7 +221,7 @@ const dictionary = {
     "common.edit": "Edit",
     "common.confirmDelete": "Are you sure you want to delete?",
     "login.title": "Login - Skill Tree",
-    "login.subtitle": "Level up your skills Solo Leveling style",
+    "login.subtitle": "Develop your skills and push your limits.",
     "login.email": "Email",
     "login.password": "Password",
     "login.username": "Username",

@@ -64,12 +64,11 @@
         <div class="sidebar-header">
           <div class="logo">
             <div class="logo-icon">
-              <i class="fas fa-chess-knight"></i>
+              <i class="fa-brands fa-galactic-senate"></i>
               <div class="logo-glow"></div>
             </div>
             <div class="logo-text">
               <span class="logo-title" data-i18n="app.title">Skill Tree</span>
-              <span class="logo-subtitle">Solo Leveling</span>
             </div>
           </div>
           <button id="sidebar-toggle" class="sidebar-toggle">
@@ -393,7 +392,9 @@
                   </div>
                   <div class="profile-stats-row">
                     <div class="profile-stat-box">
-                      <div class="stat-icon"><i class="fas fa-star"></i></div>
+                      <div class="stat-icon">
+                        <i class="fa-solid fa-hand-fist"></i>
+                      </div>
                       <span id="profile-level" class="stat-value">1</span>
                       <span class="stat-label" data-i18n="profile.level"
                         >المستوى</span
@@ -428,19 +429,6 @@
                     >
                   </div>
                 </div>
-              </div>
-
-              <!-- Activity Log -->
-              <div class="profile-section">
-                <div class="section-header">
-                  <div class="section-title">
-                    <div class="section-icon">
-                      <i class="fas fa-history"></i>
-                    </div>
-                    <h3 data-i18n="profile.activityLog">سجل النشاط</h3>
-                  </div>
-                </div>
-                <div id="activity-log-list" class="activity-list"></div>
               </div>
 
               <!-- My Skills Section -->
@@ -479,6 +467,19 @@
                   </button>
                 </div>
                 <div id="profile-quests-list" class="profile-items-list"></div>
+              </div>
+
+              <!-- Activity Log -->
+              <div class="profile-section">
+                <div class="section-header">
+                  <div class="section-title">
+                    <div class="section-icon">
+                      <i class="fas fa-history"></i>
+                    </div>
+                    <h3 data-i18n="profile.activityLog">سجل النشاط</h3>
+                  </div>
+                </div>
+                <div id="activity-log-list" class="activity-list"></div>
               </div>
             </div>
           </section>
