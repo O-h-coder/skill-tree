@@ -1,9 +1,10 @@
-// ===== Quests Module (View + Complete Only) =====
+// ===== Quests Module (View + Complete Only, Daily Reset) =====
 import { getSupabase } from "./supabase.js";
 import { getCurrentUser } from "./auth.js";
 import { t } from "./i18n.js";
 import { notify } from "./utils.js";
 import { logActivity } from "./user.js";
+import { addXp } from "./app.js";
 
 let currentQuests = [];
 
@@ -11,6 +12,9 @@ export async function loadQuests() {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
+
+  // Check for daily reset - reset completed quests at midnight
+  await checkDailyReset(supabase, user.id);
 
   const { data, error } = await supabase
     .from("quests")
@@ -28,6 +32,44 @@ export async function loadQuests() {
   return currentQuests;
 }
 
+async function checkDailyReset(supabase, userId) {
+  // Get last reset time from user_stats
+  const { data: stats } = await supabase
+    .from("user_stats")
+    .select("last_quest_reset")
+    .eq("user_id", userId)
+    .single();
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  let lastReset = stats?.last_quest_reset
+    ? new Date(stats.last_quest_reset)
+    : null;
+
+  if (!lastReset || lastReset < today) {
+    // Reset all completed quests
+    await supabase
+      .from("quests")
+      .update({
+        completed: false,
+        completed_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("completed", true);
+
+    // Update last reset time
+    await supabase
+      .from("user_stats")
+      .update({
+        last_quest_reset: now.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq("user_id", userId);
+  }
+}
+
 export async function completeQuest(questId) {
   const supabase = getSupabase();
   const user = await getCurrentUser();
@@ -37,7 +79,6 @@ export async function completeQuest(questId) {
   if (!quest) return { error: new Error("Quest not found") };
   if (quest.completed) return { error: new Error("Quest already completed") };
 
-  // Mark as completed
   const { data: updatedQuest, error: updateError } = await supabase
     .from("quests")
     .update({
@@ -54,13 +95,18 @@ export async function completeQuest(questId) {
     return { error: updateError };
   }
 
+  const xpGain = quest.xp_reward || 10;
+
+  // Award XP
+  await addXp(xpGain);
+
   // Log activity
   await logActivity(
     "complete",
     "quest",
     questId,
     quest.title,
-    `Completed quest: ${quest.title} (+${quest.xp_reward || 10} XP)`,
+    `Completed quest: ${quest.title} (+${xpGain} XP)`,
   );
 
   notify(t("notifications.questComplete", { title: quest.title }), "success");

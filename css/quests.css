@@ -1,31 +1,56 @@
-/* ===== Quests Page (View + Complete Only) ===== */
+/* ===== Quests Page - Daily Quests Style ===== */
 .quests-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .quest-card {
-  background: var(--dark-light);
+  background: var(--dark-card);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 24px 28px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--secondary));
+  opacity: 0;
   transition: var(--transition);
 }
 
 .quest-card:hover {
-  border-color: var(--primary);
-  box-shadow: var(--shadow);
+  border-color: var(--border-strong);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px var(--primary-glow);
+  transform: translateX(-4px);
 }
 
+.quest-card:hover::before {
+  opacity: 1;
+}
+
+/* Quest Checkbox */
 .quest-checkbox {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border: 2px solid var(--primary);
-  border-radius: 6px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -34,32 +59,117 @@
   flex-shrink: 0;
   background: none;
   color: var(--primary);
+  font-size: 14px;
+  position: relative;
 }
 
 .quest-checkbox:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 15px var(--primary-glow);
+  transform: scale(1.1);
 }
 
+.quest-checkbox:active {
+  transform: scale(0.95);
+}
+
+.quest-checkbox i {
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.quest-checkbox:hover i {
+  opacity: 0.5;
+}
+
+/* Quest Content */
 .quest-content {
   flex: 1;
 }
 
 .quest-title {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
 }
 
 .quest-description {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
+  line-height: 1.5;
 }
 
+/* Quest Reward */
 .quest-reward {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 15px;
   color: var(--warning);
+  font-weight: 700;
   flex-shrink: 0;
+  padding: 8px 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.quest-reward i {
+  font-size: 14px;
+}
+
+/* Quest completed state */
+.quest-card.completed {
+  opacity: 0.6;
+  border-color: var(--secondary);
+}
+
+.quest-card.completed .quest-checkbox {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: white;
+}
+
+.quest-card.completed .quest-checkbox i {
+  opacity: 1;
+}
+
+.quest-card.completed .quest-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* Daily reset info */
+.daily-reset-info {
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.daily-reset-info i {
+  color: var(--primary);
+  margin-left: 8px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .quest-card {
+    padding: 18px 20px;
+    gap: 14px;
+  }
+
+  .quest-title {
+    font-size: 15px;
+  }
+
+  .quest-reward {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
 }

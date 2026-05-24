@@ -34,6 +34,7 @@ import {
   deleteQuest,
   updateStats,
   closeModal,
+  resetUserData,
 } from "./user.js";
 import { loadSkills, renderSkills, completeSkill } from "./skills.js";
 import { loadQuests, renderQuests, completeQuest } from "./quests.js";
@@ -91,6 +92,15 @@ let isSidebarCollapsed = false;
 let isDarkMode = true;
 let authInitialized = false;
 
+// ===== Page Icons =====
+const PAGE_ICONS = {
+  skillTree: "fa-gem",
+  dailyQuests: "fa-scroll",
+  friends: "fa-users",
+  profile: "fa-id-card",
+  settings: "fa-cog",
+};
+
 // ===== Initialization =====
 async function init() {
   if (!window.supabase) {
@@ -125,7 +135,6 @@ async function startApp() {
 
     if (!authInitialized) {
       onAuthStateChange((event, session) => {
-        // Only redirect on explicit sign-out to avoid init-time redirect loops
         if (event === "SIGNED_OUT") {
           window.location.href = "login.html";
         }
@@ -158,6 +167,7 @@ async function startApp() {
     ) {
       isDarkMode = false;
       document.body.classList.add("light-mode");
+      updateThemeToggleUI();
     }
 
     navigateToPage("skillTree");
@@ -241,6 +251,7 @@ function setupEventDelegation() {
 
     const action = target.dataset.action;
     const id = target.dataset.id;
+    const value = target.dataset.value;
     e.preventDefault();
 
     switch (action) {
@@ -258,10 +269,6 @@ function setupEventDelegation() {
         if (id) {
           showLoading(true);
           const result = await completeSkill(id);
-          const xpGain = result?.data?.xp_reward || 25;
-          if (!result?.error) {
-            await addXp(xpGain);
-          }
           showLoading(false);
         }
         break;
@@ -270,10 +277,6 @@ function setupEventDelegation() {
         if (id) {
           showLoading(true);
           const result = await completeQuest(id);
-          const xpGain = result?.data?.xp_reward || 10;
-          if (!result?.error) {
-            await addXp(xpGain);
-          }
           showLoading(false);
         }
         break;
@@ -407,9 +410,9 @@ function setupEventDelegation() {
       }
 
       case "changeLanguage": {
-        const select = target;
-        if (select) {
-          setLanguage(select.value);
+        const lang = value || target.value;
+        if (lang) {
+          setLanguage(lang);
           updatePageText();
         }
         break;
@@ -422,6 +425,12 @@ function setupEventDelegation() {
       case "resetLevel":
         if (confirm(t("settings.resetConfirm"))) {
           await handleResetLevel();
+        }
+        break;
+
+      case "resetData":
+        if (confirm(t("settings.resetDataConfirm"))) {
+          await handleResetData();
         }
         break;
 
@@ -492,6 +501,8 @@ function navigateToPage(page) {
   currentPage = page;
 
   const titleEl = document.getElementById("page-title");
+  const pageIconEl = document.getElementById("page-icon");
+
   if (titleEl) {
     const titles = {
       skillTree: t("nav.skillTree"),
@@ -501,6 +512,11 @@ function navigateToPage(page) {
       settings: t("nav.settings"),
     };
     titleEl.textContent = titles[page] || page;
+  }
+
+  if (pageIconEl) {
+    const iconClass = PAGE_ICONS[page] || "fa-circle";
+    pageIconEl.innerHTML = `<i class="fas ${iconClass}"></i>`;
   }
 
   document.querySelectorAll(".nav-link").forEach((link) => {
@@ -555,7 +571,24 @@ async function handleResetLevel() {
 
   updateXpDisplay(calculateLevel(0));
 
-  notify(t("settings.resetSuccess"), "success");
+  notify(
+    t("settings.resetSuccess") || "تم إعادة تعيين المستوى بنجاح",
+    "success",
+  );
+  showLoading(false);
+}
+
+// ===== Reset Data (Skills & Quests only) =====
+async function handleResetData() {
+  showLoading(true);
+  const { error } = await resetUserData();
+  if (!error) {
+    await loadSkills();
+    renderSkills();
+    await loadQuests();
+    renderQuests();
+    await renderProfileItems();
+  }
   showLoading(false);
 }
 
@@ -618,6 +651,15 @@ export function getRankTitle(level) {
   return "Unknown";
 }
 
+export function getRankLetter(level) {
+  if (level >= 51) return "S";
+  if (level >= 41) return "A";
+  if (level >= 31) return "B";
+  if (level >= 21) return "C";
+  if (level >= 11) return "D";
+  return "E";
+}
+
 export function getXpForLevel(level) {
   return getTotalXpForLevel(level + 1) - getTotalXpForLevel(level);
 }
@@ -676,6 +718,11 @@ export function updateXpDisplay(stats) {
   const headerRank = document.getElementById("user-rank");
   const headerXpText = document.getElementById("header-xp-text");
   const xpProgress = document.getElementById("xp-progress");
+  const sidebarLevel = document.getElementById("sidebar-level");
+  const sidebarRankBadge = document.getElementById("sidebar-rank-badge");
+  const sidebarXpFill = document.getElementById("sidebar-xp-fill");
+  const sidebarXpText = document.getElementById("sidebar-xp-text");
+  const headerUserRank = document.getElementById("header-user-rank");
 
   const profileLevel = document.getElementById("profile-level");
   const profileXp = document.getElementById("profile-xp");
@@ -683,17 +730,28 @@ export function updateXpDisplay(stats) {
   const profileXpText = document.getElementById("profile-xp-text");
   const profileProgress = document.getElementById("profile-progress");
 
+  const rankLetter = getRankLetter(stats.level);
+  const rankTitle = getRankTitle(stats.level);
+
   if (headerLevelDisplay) headerLevelDisplay.textContent = `Lv.${stats.level}`;
   if (headerXp)
     headerXp.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
-  if (headerRank) headerRank.textContent = getRankTitle(stats.level);
+  if (headerRank) headerRank.textContent = rankTitle;
   if (headerXpText)
     headerXpText.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
   if (xpProgress) xpProgress.style.width = `${stats.progress}%`;
+  if (headerUserRank) headerUserRank.textContent = rankLetter;
+
+  // Sidebar updates
+  if (sidebarLevel) sidebarLevel.textContent = `Lv.${stats.level}`;
+  if (sidebarRankBadge) sidebarRankBadge.textContent = `${rankLetter}-Rank`;
+  if (sidebarXpFill) sidebarXpFill.style.width = `${stats.progress}%`;
+  if (sidebarXpText)
+    sidebarXpText.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
 
   if (profileLevel) profileLevel.textContent = stats.level;
-  if (profileXp) profileXp.textContent = stats.currentXp;
-  if (profileRank) profileRank.textContent = getRankTitle(stats.level);
+  if (profileXp) profileXp.textContent = stats.totalXp;
+  if (profileRank) profileRank.textContent = rankTitle;
   if (profileXpText)
     profileXpText.textContent = `${stats.currentXp}/${stats.nextLevelXp} XP`;
   if (profileProgress) profileProgress.style.width = `${stats.progress}%`;
@@ -724,13 +782,12 @@ export function setThemeColor(colorName) {
   root.style.setProperty("--primary", colors.primary);
   root.style.setProperty("--primary-dark", colors.primaryDark);
   root.style.setProperty("--primary-light", colors.primaryLight);
+  root.style.setProperty("--primary-glow", `${colors.primary}66`);
 
-  // Update active button state
   document.querySelectorAll(".color-option").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.color === colorName);
   });
 
-  // Save to profile
   saveThemeColor(colorName);
 }
 
@@ -766,6 +823,7 @@ export async function loadThemeColor() {
   root.style.setProperty("--primary", colors.primary);
   root.style.setProperty("--primary-dark", colors.primaryDark);
   root.style.setProperty("--primary-light", colors.primaryLight);
+  root.style.setProperty("--primary-glow", `${colors.primary}66`);
 
   document.querySelectorAll(".color-option").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.color === colorName);
@@ -775,6 +833,14 @@ export async function loadThemeColor() {
 function toggleDarkMode() {
   isDarkMode = !isDarkMode;
   document.body.classList.toggle("light-mode", !isDarkMode);
+  updateThemeToggleUI();
+}
+
+function updateThemeToggleUI() {
+  const toggle = document.getElementById("dark-mode-toggle");
+  if (toggle) {
+    toggle.setAttribute("aria-pressed", isDarkMode ? "true" : "false");
+  }
 }
 
 // ===== Start =====

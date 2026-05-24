@@ -9,7 +9,7 @@ export const DEFAULT_SKILLS = [
     name: "القوة",
     description: "تطوير القوة البدنية واللياقة",
     icon: "fa-dumbbell",
-    xpCost: 0,
+    xp_reward: 25,
     color: "#ef4444",
   },
   {
@@ -17,7 +17,7 @@ export const DEFAULT_SKILLS = [
     name: "الذكاء",
     description: "تطوير العقل والمعرفة",
     icon: "fa-brain",
-    xpCost: 0,
+    xp_reward: 25,
     color: "#6366f1",
   },
   {
@@ -25,7 +25,7 @@ export const DEFAULT_SKILLS = [
     name: "الرشاقة",
     description: "السرعة والمرونة",
     icon: "fa-running",
-    xpCost: 50,
+    xp_reward: 30,
     color: "#10b981",
   },
   {
@@ -33,7 +33,7 @@ export const DEFAULT_SKILLS = [
     name: "الإدراك",
     description: "حواسك ووعيك",
     icon: "fa-eye",
-    xpCost: 50,
+    xp_reward: 30,
     color: "#f59e0b",
   },
   {
@@ -41,7 +41,7 @@ export const DEFAULT_SKILLS = [
     name: "السحر",
     description: "قوى خارقة",
     icon: "fa-hat-wizard",
-    xpCost: 100,
+    xp_reward: 50,
     color: "#8b5cf6",
   },
   {
@@ -49,7 +49,7 @@ export const DEFAULT_SKILLS = [
     name: "الصناعة",
     description: "صناعة الأدوات والأسلحة",
     icon: "fa-hammer",
-    xpCost: 100,
+    xp_reward: 40,
     color: "#d97706",
   },
   {
@@ -57,7 +57,7 @@ export const DEFAULT_SKILLS = [
     name: "التخفي",
     description: "الاختفاء والتسلل",
     icon: "fa-ghost",
-    xpCost: 150,
+    xp_reward: 35,
     color: "#64748b",
   },
   {
@@ -65,7 +65,7 @@ export const DEFAULT_SKILLS = [
     name: "القيادة",
     description: "قيادة الفرق والجيوش",
     icon: "fa-crown",
-    xpCost: 200,
+    xp_reward: 45,
     color: "#fbbf24",
   },
 ];

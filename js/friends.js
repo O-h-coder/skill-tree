@@ -13,7 +13,6 @@ export async function loadFriends() {
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
 
-  // Get accepted friendships where current user is either sender or recipient
   const { data, error } = await supabase
     .from("friendships")
     .select(
@@ -35,7 +34,6 @@ export async function loadFriends() {
     return [];
   }
 
-  // Normalize friend data — pick the profile that is NOT the current user
   currentFriends = (data || []).map((f) => {
     const isUserSender = f.user_id === user.id;
     const friendProfile = isUserSender ? f.profiles : f.requester;
@@ -50,6 +48,25 @@ export async function loadFriends() {
     };
   });
 
+  // Load stats for each friend to show level
+  for (let friend of currentFriends) {
+    try {
+      const { data: stats } = await supabase
+        .from("user_stats")
+        .select("level, xp")
+        .eq("user_id", friend.friend_id)
+        .single();
+      friend.level = stats?.level || 1;
+      friend.xp = stats?.xp || 0;
+    } catch (e) {
+      friend.level = 1;
+      friend.xp = 0;
+    }
+  }
+
+  // Sort by level descending (highest level first)
+  currentFriends.sort((a, b) => b.level - a.level);
+
   return currentFriends;
 }
 
@@ -58,7 +75,6 @@ export async function loadFriendRequests() {
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
 
-  // Get pending requests where current user is the recipient (friend_id)
   const { data, error } = await supabase
     .from("friendships")
     .select(
@@ -100,7 +116,6 @@ export async function sendFriendRequest(friendId) {
     return { error: new Error("Cannot send request to yourself") };
   }
 
-  // Check if already friends or request exists in either direction
   const { data: existing, error: checkError } = await supabase
     .from("friendships")
     .select("*")
@@ -122,7 +137,6 @@ export async function sendFriendRequest(friendId) {
     }
   }
 
-  // Send request
   const { data, error } = await supabase
     .from("friendships")
     .insert([
@@ -150,7 +164,6 @@ export async function acceptFriendRequest(requestId) {
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  // Update status only — accepted_at may not exist in rebuilt schema
   const { data, error } = await supabase
     .from("friendships")
     .update({ status: "accepted" })
@@ -233,7 +246,6 @@ export async function searchUsers(query) {
 
   const searchTerm = query.trim().toLowerCase();
 
-  // Search by username or email
   const { data, error } = await supabase
     .from("profiles")
     .select("id, username, email, avatar_url")
@@ -246,7 +258,6 @@ export async function searchUsers(query) {
     return [];
   }
 
-  // Check friendship status for each result
   const { data: friendships } = await supabase
     .from("friendships")
     .select("*")
@@ -287,11 +298,9 @@ export function renderFriends() {
             <div class="friend-card" data-friend-id="${friend.friend_id}">
                 <img class="friend-avatar" src="${friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.username)}&background=6366f1&color=fff`}" alt="${friend.username}" loading="lazy">
                 <h4 class="friend-name">${friend.username}</h4>
-                <p class="friend-level">${friend.email}</p>
+                <p class="friend-level">Lv.${friend.level}</p>
+                <p class="friend-rank">${friend.xp} XP</p>
                 <div class="friend-actions">
-                    <button class="btn-view-friend" data-action="viewFriend" data-id="${friend.friend_id}">
-                        <i class="fas fa-eye"></i> <span data-i18n="common.view">${t("common.view") || t("common.edit") || "View"}</span>
-                    </button>
                     <button class="btn-remove-friend" data-action="removeFriend" data-id="${friend.friendship_id}">
                         <i class="fas fa-user-minus"></i> <span data-i18n="friends.remove">${t("friends.remove")}</span>
                     </button>
@@ -343,7 +352,7 @@ export function renderSearchResults() {
   if (!container) return;
 
   if (searchResults.length === 0) {
-    container.innerHTML = `<div class="empty-state">${t("friends.noResults")}</div>`;
+    container.innerHTML = `<div class="empty-state">${t("friends.noResults") || "لا توجد نتائج"}</div>`;
     return;
   }
 

@@ -95,7 +95,6 @@ async function handleLogin(e) {
   showLoading(false);
 
   if (error) {
-    // Handle "Email not confirmed" specifically
     if (
       error.message &&
       error.message.toLowerCase().includes("email not confirmed")
@@ -144,7 +143,6 @@ async function handleRegister(e) {
     return;
   }
 
-  // Try auto-login after successful registration
   const { data: loginData, error: loginError } = await signIn(email, password);
   showLoading(false);
 
@@ -156,7 +154,6 @@ async function handleRegister(e) {
     return;
   }
 
-  // If auto-login failed (likely email confirmation required)
   notify(
     t("login.registerSuccessVerify") ||
       "تم إنشاء الحساب! تحقق من بريدك لتفعيله، أو تواصل مع المسؤول لتفعيله يدوياً.",

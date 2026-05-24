@@ -9,11 +9,22 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <base target="_blank" />
   </head>
   <body>
+    <div class="login-bg">
+      <div class="bg-particles"></div>
+      <div class="bg-glow"></div>
+    </div>
+
     <div class="login-container">
       <div class="login-card">
+        <div class="card-glow"></div>
+
         <div class="login-header">
           <div class="login-actions">
             <button
@@ -34,13 +45,17 @@
             </button>
           </div>
           <div class="logo">
-            <i class="fas fa-chess-knight"></i>
+            <div class="logo-ring">
+              <i class="fas fa-chess-knight"></i>
+              <div class="ring-glow"></div>
+            </div>
             <h1 data-i18n="app.title">Skill Tree</h1>
+            <p data-i18n="login.subtitle">
+              ارتقِ بمهاراتك كما في Solo Leveling
+            </p>
           </div>
-          <p data-i18n="login.subtitle">ارتقِ بمهاراتك كما في Solo Leveling</p>
         </div>
 
-        <!-- Toast Container -->
         <div id="toast-container" role="status" aria-live="polite"></div>
 
         <!-- Login Form -->
@@ -49,25 +64,31 @@
             <label for="login-email" data-i18n="login.email"
               >البريد الإلكتروني</label
             >
-            <input
-              type="email"
-              id="login-email"
-              required
-              aria-required="true"
-              autocomplete="email"
-            />
+            <div class="input-wrapper">
+              <i class="fas fa-envelope input-icon"></i>
+              <input
+                type="email"
+                id="login-email"
+                required
+                aria-required="true"
+                autocomplete="email"
+                placeholder="hunter@dungeon.com"
+              />
+            </div>
           </div>
           <div class="form-group">
             <label for="login-password" data-i18n="login.password"
               >كلمة المرور</label
             >
-            <div class="password-wrapper">
+            <div class="input-wrapper">
+              <i class="fas fa-lock input-icon"></i>
               <input
                 type="password"
                 id="login-password"
                 required
                 aria-required="true"
                 autocomplete="current-password"
+                placeholder="••••••"
               />
               <button
                 type="button"
@@ -81,10 +102,10 @@
           </div>
           <button
             type="submit"
-            class="btn btn-primary btn-block"
+            class="btn btn-glow btn-block"
             data-i18n="login.loginBtn"
           >
-            تسجيل الدخول
+            <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
           </button>
         </form>
 
@@ -94,33 +115,42 @@
             <label for="register-username" data-i18n="login.username"
               >اسم المستخدم</label
             >
-            <input
-              type="text"
-              id="register-username"
-              required
-              minlength="3"
-              maxlength="20"
-              aria-required="true"
-              autocomplete="username"
-            />
+            <div class="input-wrapper">
+              <i class="fas fa-user input-icon"></i>
+              <input
+                type="text"
+                id="register-username"
+                required
+                minlength="3"
+                maxlength="20"
+                aria-required="true"
+                autocomplete="username"
+                placeholder="HunterName"
+              />
+            </div>
           </div>
           <div class="form-group">
             <label for="register-email" data-i18n="login.email"
               >البريد الإلكتروني</label
             >
-            <input
-              type="email"
-              id="register-email"
-              required
-              aria-required="true"
-              autocomplete="email"
-            />
+            <div class="input-wrapper">
+              <i class="fas fa-envelope input-icon"></i>
+              <input
+                type="email"
+                id="register-email"
+                required
+                aria-required="true"
+                autocomplete="email"
+                placeholder="hunter@dungeon.com"
+              />
+            </div>
           </div>
           <div class="form-group">
             <label for="register-password" data-i18n="login.password"
               >كلمة المرور</label
             >
-            <div class="password-wrapper">
+            <div class="input-wrapper">
+              <i class="fas fa-lock input-icon"></i>
               <input
                 type="password"
                 id="register-password"
@@ -128,6 +158,7 @@
                 minlength="6"
                 aria-required="true"
                 autocomplete="new-password"
+                placeholder="••••••"
               />
               <button
                 type="button"
@@ -141,10 +172,10 @@
           </div>
           <button
             type="submit"
-            class="btn btn-primary btn-block"
+            class="btn btn-glow btn-block"
             data-i18n="login.registerBtn"
           >
-            إنشاء حساب
+            <i class="fas fa-user-plus"></i> إنشاء حساب
           </button>
         </form>
 
@@ -163,8 +194,11 @@
         </div>
 
         <div id="loading" class="loading hidden" aria-hidden="true">
-          <div class="spinner"></div>
-          <span data-i18n="loading">جاري التحميل...</span>
+          <div class="gate-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-core"></div>
+          </div>
+          <span data-i18n="loading">جاري فتح البوابة...</span>
         </div>
       </div>
     </div>

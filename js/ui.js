@@ -17,7 +17,6 @@ export async function loadNotifications() {
   const user = await getCurrentUser();
   if (!supabase || !user) return [];
 
-  // Load from activity_history
   const { data: activities, error: actError } = await supabase
     .from("activity_history")
     .select("*")
@@ -27,7 +26,6 @@ export async function loadNotifications() {
 
   if (actError) console.error("Load activities error:", actError);
 
-  // Load pending friend requests
   let requestNotifications = [];
   if (_loadFriendRequestsFn) {
     const requests = await _loadFriendRequestsFn();

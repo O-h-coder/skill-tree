@@ -1,132 +1,209 @@
-/* ===== Skills Page (Lock → Complete → XP) ===== */
+/* ===== Skills Page - Solo Leveling Style ===== */
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
 }
 
 .skill-card {
-  background: var(--dark-light);
+  background: var(--dark-card);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 28px;
   position: relative;
   transition: var(--transition);
   overflow: hidden;
   cursor: pointer;
 }
 
-.skill-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--primary);
+.skill-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  opacity: 0;
+  transition: var(--transition);
 }
 
-/* Locked state — dimmed, grayscale */
-.skill-card.locked {
-  opacity: 0.85;
-  filter: grayscale(0.6);
-}
-
-.skill-card.locked:hover {
+.skill-card:hover::before {
   opacity: 1;
-  filter: grayscale(0.3);
-  border-color: var(--primary);
 }
 
-/* Completed state — full color with checkmark */
+.skill-card:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 30px var(--primary-glow);
+  border-color: var(--border-strong);
+}
+
+/* Locked state */
+.skill-card.locked {
+  opacity: 0.9;
+}
+
+.skill-card.locked .skill-icon {
+  filter: grayscale(0.4);
+}
+
+.skill-card.locked:hover .skill-icon {
+  filter: grayscale(0.1);
+}
+
+/* Completed state */
 .skill-card.completed {
   border-color: var(--secondary);
-  background: rgba(16, 185, 129, 0.08);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.skill-card.completed::before {
+  opacity: 1;
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
 }
 
 .skill-card.completed .skill-name {
   text-decoration: line-through;
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 .skill-completed-overlay {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 32px;
-  height: 32px;
-  background: var(--secondary);
+  top: 16px;
+  left: 16px;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--secondary), #059669);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 12px var(--secondary-glow);
+  z-index: 2;
 }
 
+/* Skill Icon */
 .skill-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 16px;
+  font-size: 28px;
+  margin-bottom: 20px;
+  position: relative;
+  transition: var(--transition);
+}
+
+.skill-icon::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 20px;
+  background: inherit;
+  opacity: 0.3;
+  filter: blur(8px);
+  z-index: -1;
 }
 
 .skill-name {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text);
 }
 
 .skill-description {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
-  line-height: 1.5;
-  margin-bottom: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
 }
 
+/* Skill Meta */
 .skill-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
 .skill-xp {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--warning);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+
+.skill-xp i {
+  font-size: 12px;
 }
 
 .skill-status {
   font-size: 12px;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .skill-status.locked {
-  background: rgba(148, 163, 184, 0.15);
+  background: rgba(148, 163, 184, 0.1);
   color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .skill-status.completed {
   background: rgba(16, 185, 129, 0.15);
   color: var(--secondary);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-/* Skill detail modal actions */
-.badge-completed {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--secondary);
-  border-radius: var(--radius-sm);
+/* Click hint for locked skills */
+.skill-card.locked::after {
+  content: "اضغط لإكمال";
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  font-size: 11px;
+  color: var(--primary);
+  opacity: 0;
+  transition: var(--transition);
   font-weight: 600;
-  font-size: 14px;
+}
+
+.skill-card.locked:hover::after {
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .skills-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .skill-card {
+    padding: 20px;
+  }
+
+  .skill-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  .skill-name {
+    font-size: 18px;
+  }
 }

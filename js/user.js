@@ -80,7 +80,7 @@ export async function uploadAvatar(file) {
     return { error: new Error("Invalid image format") };
 
   const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-  const filePath = fileName; // Upload directly to bucket root, no folder
+  const filePath = fileName;
 
   const { error: uploadError } = await supabase.storage
     .from("profiles")
@@ -395,6 +395,23 @@ export async function deleteQuest(questId) {
   return { error: null };
 }
 
+// ===== Reset Data (keep stats) =====
+export async function resetUserData() {
+  const supabase = getSupabase();
+  const user = await getCurrentUser();
+  if (!supabase || !user) return { error: new Error("Not authenticated") };
+
+  await supabase.from("skills").delete().eq("user_id", user.id);
+  await supabase.from("quests").delete().eq("user_id", user.id);
+  await supabase.from("activity_history").delete().eq("user_id", user.id);
+
+  notify(
+    t("settings.resetDataSuccess") || "تم حذف المهارات والمهام بنجاح",
+    "success",
+  );
+  return { error: null };
+}
+
 // ===== Render Profile Page =====
 export async function renderProfilePage() {
   const profile = await loadUserProfile();
@@ -404,19 +421,24 @@ export async function renderProfilePage() {
 
   const avatarImg = document.getElementById("profile-avatar");
   const headerAvatar = document.getElementById("header-avatar");
+  const sidebarAvatar = document.getElementById("sidebar-avatar");
   const avatarUrl =
     profile.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || "User")}&background=6366f1&color=fff`;
 
   if (avatarImg) avatarImg.src = avatarUrl;
   if (headerAvatar) headerAvatar.src = avatarUrl;
+  if (sidebarAvatar) sidebarAvatar.src = avatarUrl;
 
   const usernameEl = document.getElementById("profile-username");
   const headerUsername = document.getElementById("header-username");
+  const sidebarUsername = document.getElementById("sidebar-username");
   const emailEl = document.getElementById("profile-email");
 
-  if (usernameEl) usernameEl.textContent = profile.username || "User";
-  if (headerUsername) headerUsername.textContent = profile.username || "User";
+  if (usernameEl) usernameEl.textContent = profile.username || "Hunter";
+  if (headerUsername) headerUsername.textContent = profile.username || "Hunter";
+  if (sidebarUsername)
+    sidebarUsername.textContent = profile.username || "Hunter";
   if (emailEl) emailEl.textContent = profile.email || "";
 
   const levelEl = document.getElementById("profile-level");
@@ -428,12 +450,6 @@ export async function renderProfilePage() {
 
   const friendCount = await getFriendCount();
   if (friendsEl) friendsEl.textContent = friendCount;
-
-  const headerLevel = document.getElementById("user-level");
-  const headerXp = document.getElementById("user-xp");
-
-  if (headerLevel) headerLevel.textContent = `Level ${stats?.level || 1}`;
-  if (headerXp) headerXp.textContent = `${stats?.xp || 0} XP`;
 
   // Update XP display via app.js engine
   if (stats?.xp !== undefined) {
@@ -485,8 +501,8 @@ export function renderProfileSkills() {
         <i class="fas ${s.icon}"></i>
       </div>
       <div class="profile-item-content">
-        <h4>${s.name} ${s.completed ? '<span style="color: var(--secondary); font-size: 12px;"><i class="fas fa-check"></i></span>' : ""}</h4>
-        <p>${s.description || ""} — <span style="color: var(--warning)">${s.xp_reward || 25} XP</span></p>
+        <h4>${s.name} ${s.completed ? '<span class="completed-badge"><i class="fas fa-check"></i></span>' : ""}</h4>
+        <p>${s.description || ""} — <span>${s.xp_reward || 25} XP</span></p>
       </div>
       <div class="profile-item-actions">
         <button class="btn-edit" data-action="editProfileSkill" data-id="${s.id}" title="${t("common.edit")}">
@@ -518,7 +534,7 @@ export function renderProfileQuests() {
       <div class="profile-item-icon quest"><i class="fas fa-scroll"></i></div>
       <div class="profile-item-content">
         <h4>${q.title}</h4>
-        <p>${q.description || ""} — <span style="color: var(--warning)">${q.xp_reward} XP</span></p>
+        <p>${q.description || ""} — <span>${q.xp_reward} XP</span></p>
       </div>
       <div class="profile-item-actions">
         <button class="btn-edit" data-action="editProfileQuest" data-id="${q.id}" title="${t("common.edit")}">
@@ -741,8 +757,10 @@ export async function handleAvatarChange(e) {
   if (data?.url) {
     const avatarImg = document.getElementById("profile-avatar");
     const headerAvatar = document.getElementById("header-avatar");
+    const sidebarAvatar = document.getElementById("sidebar-avatar");
     if (avatarImg) avatarImg.src = data.url;
     if (headerAvatar) headerAvatar.src = data.url;
+    if (sidebarAvatar) sidebarAvatar.src = data.url;
     notify(t("profile.avatarUpdated"), "success");
   }
 }

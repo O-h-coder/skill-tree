@@ -99,7 +99,6 @@ export function renderSkills() {
       const cardClass = isCompleted ? "completed" : "locked";
       const xpText = `${skill.xp_reward || 25} XP`;
 
-      // If completed: just display, no click action. If not: click to complete.
       const clickAction = isCompleted
         ? ""
         : `data-action="completeSkill" data-id="${skill.id}"`;

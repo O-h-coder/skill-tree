@@ -15,24 +15,31 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <base target="_blank" />
   </head>
   <body>
-    <!-- Toast Notifications Container -->
+    <!-- Toast Notifications -->
     <div id="toast-container"></div>
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="hidden">
-      <div class="spinner"></div>
-      <p data-i18n="loading">جاري التحميل...</p>
+      <div class="loading-gate">
+        <div class="gate-frame"></div>
+        <div class="gate-glow"></div>
+        <p data-i18n="loading">جاري فتح البوابة...</p>
+      </div>
     </div>
 
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="hidden">
       <div class="auth-message">
-        <i class="fas fa-lock"></i>
-        <p data-i18n="auth.pleaseLogin">يرجى تسجيل الدخول</p>
-        <a href="login.html" class="btn btn-primary" data-i18n="auth.login"
+        <i class="fas fa-shield-halved"></i>
+        <p data-i18n="auth.pleaseLogin">يجب تسجيل الدخول للدخول إلى الدنجن</p>
+        <a href="login.html" class="btn btn-glow" data-i18n="auth.login"
           >تسجيل الدخول</a
         >
       </div>
@@ -56,13 +63,35 @@
       <nav id="sidebar">
         <div class="sidebar-header">
           <div class="logo">
-            <i class="fas fa-chess-knight"></i>
-            <span data-i18n="app.title">Skill Tree</span>
+            <div class="logo-icon">
+              <i class="fas fa-chess-knight"></i>
+              <div class="logo-glow"></div>
+            </div>
+            <div class="logo-text">
+              <span class="logo-title" data-i18n="app.title">Skill Tree</span>
+              <span class="logo-subtitle">Solo Leveling</span>
+            </div>
           </div>
           <button id="sidebar-toggle" class="sidebar-toggle">
             <i class="fas fa-bars"></i>
           </button>
         </div>
+
+        <div class="user-sidebar-info">
+          <img
+            id="sidebar-avatar"
+            src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
+            alt="avatar"
+          />
+          <div class="sidebar-user-details">
+            <span id="sidebar-username">Hunter</span>
+            <div class="sidebar-rank">
+              <span id="sidebar-rank-badge" class="rank-tag">E-Rank</span>
+              <span id="sidebar-level">Lv.1</span>
+            </div>
+          </div>
+        </div>
+
         <ul class="nav-menu">
           <li>
             <a
@@ -71,8 +100,9 @@
               data-action="navigate"
               class="nav-link active"
             >
-              <i class="fas fa-sitemap"></i
-              ><span data-i18n="nav.skillTree">شجرة المهارات</span>
+              <div class="nav-icon"><i class="fas fa-gem"></i></div>
+              <span data-i18n="nav.skillTree">المهارات</span>
+              <div class="nav-glow"></div>
             </a>
           </li>
           <li>
@@ -82,8 +112,9 @@
               data-action="navigate"
               class="nav-link"
             >
-              <i class="fas fa-scroll"></i
-              ><span data-i18n="nav.dailyQuests">المهام اليومية</span>
+              <div class="nav-icon"><i class="fas fa-scroll"></i></div>
+              <span data-i18n="nav.dailyQuests">المهام اليومية</span>
+              <div class="nav-glow"></div>
             </a>
           </li>
           <li>
@@ -93,9 +124,10 @@
               data-action="navigate"
               class="nav-link"
             >
-              <i class="fas fa-users"></i
-              ><span data-i18n="nav.friends">الأصدقاء</span>
+              <div class="nav-icon"><i class="fas fa-users"></i></div>
+              <span data-i18n="nav.friends">الأصدقاء</span>
               <span id="friends-badge" class="badge hidden">0</span>
+              <div class="nav-glow"></div>
             </a>
           </li>
           <li>
@@ -105,8 +137,9 @@
               data-action="navigate"
               class="nav-link"
             >
-              <i class="fas fa-user"></i
-              ><span data-i18n="nav.profile">الملف الشخصي</span>
+              <div class="nav-icon"><i class="fas fa-id-card"></i></div>
+              <span data-i18n="nav.profile">الملف الشخصي</span>
+              <div class="nav-glow"></div>
             </a>
           </li>
           <li>
@@ -116,15 +149,27 @@
               data-action="navigate"
               class="nav-link"
             >
-              <i class="fas fa-cog"></i
-              ><span data-i18n="nav.settings">الإعدادات</span>
+              <div class="nav-icon"><i class="fas fa-cog"></i></div>
+              <span data-i18n="nav.settings">الإعدادات</span>
+              <div class="nav-glow"></div>
             </a>
           </li>
         </ul>
+
         <div class="sidebar-footer">
-          <button id="logout-btn" data-action="logout" class="btn btn-danger">
-            <i class="fas fa-sign-out-alt"></i
-            ><span data-i18n="auth.logout">تسجيل الخروج</span>
+          <div class="xp-sidebar">
+            <div class="xp-bar-mini">
+              <div
+                class="xp-fill-mini"
+                id="sidebar-xp-fill"
+                style="width: 0%"
+              ></div>
+            </div>
+            <span id="sidebar-xp-text">0/50 XP</span>
+          </div>
+          <button id="logout-btn" data-action="logout" class="btn btn-logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span data-i18n="auth.logout">خروج</span>
           </button>
         </div>
       </nav>
@@ -134,23 +179,39 @@
         <!-- Top Header -->
         <header class="top-header">
           <div class="header-left">
-            <h2 id="page-title" data-i18n="nav.skillTree">شجرة المهارات</h2>
+            <div class="page-icon" id="page-icon">
+              <i class="fas fa-gem"></i>
+            </div>
+            <h2 id="page-title" data-i18n="nav.skillTree">المهارات</h2>
           </div>
           <div class="header-right">
-            <!-- Rank Title -->
-            <div class="rank-badge" id="user-rank">E-Rank Hunter</div>
-
-            <!-- XP Progress Bar -->
-            <div class="xp-bar-container">
-              <div class="xp-bar" id="xp-progress" style="width: 0%"></div>
-              <span class="xp-text" id="header-xp-text">0/50 XP</span>
+            <!-- Rank Display -->
+            <div class="header-rank" id="header-rank-display">
+              <div class="rank-icon"><i class="fas fa-crown"></i></div>
+              <div class="rank-info">
+                <span class="rank-title" id="user-rank">E-Rank Hunter</span>
+                <span class="rank-level" id="user-level-display">Lv.1</span>
+              </div>
             </div>
 
-            <!-- Notification Bell -->
+            <!-- XP Bar -->
+            <div class="header-xp">
+              <div class="xp-track">
+                <div
+                  class="xp-progress"
+                  id="xp-progress"
+                  style="width: 0%"
+                ></div>
+                <div class="xp-shine"></div>
+              </div>
+              <span class="xp-label" id="header-xp-text">0/50 XP</span>
+            </div>
+
+            <!-- Notifications -->
             <div class="notification-wrapper">
               <button
                 id="notification-btn"
-                class="icon-btn"
+                class="icon-btn glow-btn"
                 data-action="toggleNotifications"
               >
                 <i class="fas fa-bell"></i>
@@ -160,12 +221,11 @@
                 <div class="notification-header">
                   <h3 data-i18n="notifications.title">الإشعارات</h3>
                   <button
-                    id="mark-all-read"
                     data-action="markAllRead"
                     class="text-btn"
                     data-i18n="notifications.markAllRead"
                   >
-                    تحديد الكل مقروء
+                    تحديد الكل
                   </button>
                 </div>
                 <div id="notification-list" class="notification-list">
@@ -175,6 +235,8 @@
                 </div>
               </div>
             </div>
+
+            <!-- User Mini -->
             <div class="user-mini">
               <img
                 id="header-avatar"
@@ -182,42 +244,54 @@
                 alt="avatar"
               />
               <div class="user-mini-info">
-                <span id="header-username">User</span>
-                <span id="user-level" class="user-level">Lv.1</span>
+                <span id="header-username">Hunter</span>
+                <span id="header-user-rank" class="user-rank-tag">E</span>
               </div>
             </div>
           </div>
         </header>
 
-        <!-- Pages -->
+        <!-- Pages Container -->
         <div id="pages-container">
           <!-- Skill Tree Page -->
           <section id="skillTree" class="page active">
-            <div class="page-header">
-              <div class="user-stats-bar">
-                <div class="stat-item">
-                  <i class="fas fa-star"></i>
-                  <span id="user-level-display">Lv.1</span>
-                </div>
-                <div class="stat-item">
-                  <i class="fas fa-bolt"></i>
-                  <span id="user-xp">0 XP</span>
-                </div>
-              </div>
+            <div class="page-hero">
+              <div class="hero-glow"></div>
+              <h1 class="page-hero-title" data-i18n="skills.heroTitle">
+                مهاراتك
+              </h1>
+              <p class="page-hero-subtitle" data-i18n="skills.heroSubtitle">
+                اضغط على أي مهارة لإكمالها وكسب XP
+              </p>
             </div>
             <div id="skills-grid" class="skills-grid"></div>
           </section>
 
           <!-- Daily Quests Page -->
           <section id="dailyQuests" class="page">
-            <div class="page-header">
-              <h3 data-i18n="quests.title">المهام اليومية</h3>
+            <div class="page-hero">
+              <div class="hero-glow"></div>
+              <h1 class="page-hero-title" data-i18n="quests.heroTitle">
+                مهامك اليومية
+              </h1>
+              <p class="page-hero-subtitle" data-i18n="quests.heroSubtitle">
+                تعود كل يوم عند منتصف الليل
+              </p>
             </div>
             <div id="quests-list" class="quests-list"></div>
           </section>
 
           <!-- Friends Page -->
           <section id="friends" class="page">
+            <div class="page-hero">
+              <div class="hero-glow"></div>
+              <h1 class="page-hero-title" data-i18n="friends.heroTitle">
+                زملاء الصيد
+              </h1>
+              <p class="page-hero-subtitle" data-i18n="friends.heroSubtitle">
+                تنافس مع أصدقائك وارتقِ في الترتيب
+              </p>
+            </div>
             <div class="friends-container">
               <div class="friends-tabs">
                 <button
@@ -225,16 +299,16 @@
                   data-tab="myFriends"
                   data-action="switchTab"
                 >
-                  <i class="fas fa-user-friends"></i
-                  ><span data-i18n="friends.myFriends">أصدقائي</span>
+                  <i class="fas fa-user-friends"></i>
+                  <span data-i18n="friends.myFriends">أصدقائي</span>
                 </button>
                 <button
                   class="tab-btn"
                   data-tab="requests"
                   data-action="switchTab"
                 >
-                  <i class="fas fa-envelope"></i
-                  ><span data-i18n="friends.requests">طلبات الصداقة</span>
+                  <i class="fas fa-envelope"></i>
+                  <span data-i18n="friends.requests">الطلبات</span>
                   <span id="requests-badge" class="badge hidden">0</span>
                 </button>
                 <button
@@ -242,37 +316,38 @@
                   data-tab="findFriends"
                   data-action="switchTab"
                 >
-                  <i class="fas fa-search"></i
-                  ><span data-i18n="friends.find">بحث</span>
+                  <i class="fas fa-search"></i>
+                  <span data-i18n="friends.find">بحث</span>
                 </button>
               </div>
               <div id="myFriends-tab" class="tab-content active">
                 <div id="friends-list" class="friends-grid"></div>
                 <div id="no-friends" class="empty-state-box hidden">
-                  <i class="fas fa-users-slash"></i>
-                  <p data-i18n="friends.noFriends">لا يوجد أصدقاء بعد</p>
+                  <div class="empty-icon">
+                    <i class="fas fa-users-slash"></i>
+                  </div>
+                  <p data-i18n="friends.noFriends">لا يوجد زملاء صيد بعد</p>
                 </div>
               </div>
               <div id="requests-tab" class="tab-content">
                 <div id="requests-list" class="requests-list"></div>
                 <div id="no-requests" class="empty-state-box hidden">
-                  <i class="fas fa-inbox"></i>
-                  <p data-i18n="friends.noRequests">لا توجد طلبات صداقة</p>
+                  <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+                  <p data-i18n="friends.noRequests">لا توجد طلبات</p>
                 </div>
               </div>
               <div id="findFriends-tab" class="tab-content">
                 <div class="search-box">
-                  <input
-                    type="text"
-                    id="friend-search-input"
-                    data-i18n-placeholder="friends.searchPlaceholder"
-                    placeholder="ابحث باسم المستخدم أو البريد الإلكتروني..."
-                  />
-                  <button
-                    id="friend-search-btn"
-                    class="btn btn-primary"
-                    data-action="searchFriends"
-                  >
+                  <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input
+                      type="text"
+                      id="friend-search-input"
+                      data-i18n-placeholder="friends.searchPlaceholder"
+                      placeholder="ابحث باسم المستخدم..."
+                    />
+                  </div>
+                  <button class="btn btn-glow" data-action="searchFriends">
                     <i class="fas fa-search"></i>
                   </button>
                 </div>
@@ -285,7 +360,7 @@
           <section id="profile" class="page">
             <div class="profile-container">
               <!-- Profile Card -->
-              <div class="profile-card">
+              <div class="profile-card main-card">
                 <div class="profile-avatar-section">
                   <div class="avatar-wrapper">
                     <img
@@ -293,6 +368,7 @@
                       src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
                       alt="avatar"
                     />
+                    <div class="avatar-ring"></div>
                     <button
                       id="change-avatar-btn"
                       class="avatar-overlay"
@@ -309,52 +385,78 @@
                   />
                 </div>
                 <div class="profile-info">
-                  <h2 id="profile-username">User</h2>
-                  <p id="profile-email">user@example.com</p>
-                  <div class="profile-rank" id="profile-rank">
-                    E-Rank Hunter
+                  <h2 id="profile-username">Hunter</h2>
+                  <p id="profile-email">hunter@dungeon.com</p>
+                  <div class="profile-rank-display">
+                    <span id="profile-rank" class="rank-tag large"
+                      >E-Rank Hunter</span
+                    >
                   </div>
-                  <div class="profile-stats">
-                    <div class="profile-stat">
+                  <div class="profile-stats-row">
+                    <div class="profile-stat-box">
+                      <div class="stat-icon"><i class="fas fa-star"></i></div>
                       <span id="profile-level" class="stat-value">1</span>
                       <span class="stat-label" data-i18n="profile.level"
                         >المستوى</span
                       >
                     </div>
-                    <div class="profile-stat">
+                    <div class="profile-stat-box">
+                      <div class="stat-icon"><i class="fas fa-bolt"></i></div>
                       <span id="profile-xp" class="stat-value">0</span>
                       <span class="stat-label" data-i18n="profile.xp"
                         >الخبرة</span
                       >
                     </div>
-                    <div class="profile-stat">
+                    <div class="profile-stat-box">
+                      <div class="stat-icon"><i class="fas fa-users"></i></div>
                       <span id="profile-friends" class="stat-value">0</span>
                       <span class="stat-label" data-i18n="profile.friends"
-                        >الأصدقاء</span
+                        >الزملاء</span
                       >
                     </div>
                   </div>
-                  <!-- XP Progress in Profile -->
-                  <div class="profile-xp-bar">
-                    <div class="xp-bar-track">
+                  <div class="profile-xp-section">
+                    <div class="xp-bar-large">
                       <div
-                        class="xp-bar-fill"
+                        class="xp-fill-large"
                         id="profile-progress"
                         style="width: 0%"
                       ></div>
+                      <div class="xp-shine-large"></div>
                     </div>
-                    <span id="profile-xp-text">0/50 XP</span>
+                    <span id="profile-xp-text" class="xp-text-large"
+                      >0/50 XP</span
+                    >
                   </div>
                 </div>
+              </div>
+
+              <!-- Activity Log -->
+              <div class="profile-section">
+                <div class="section-header">
+                  <div class="section-title">
+                    <div class="section-icon">
+                      <i class="fas fa-history"></i>
+                    </div>
+                    <h3 data-i18n="profile.activityLog">سجل النشاط</h3>
+                  </div>
+                </div>
+                <div id="activity-log-list" class="activity-list"></div>
               </div>
 
               <!-- My Skills Section -->
               <div class="profile-section">
                 <div class="section-header">
-                  <h3 data-i18n="profile.mySkills">مهاراتي</h3>
-                  <button class="btn-add-section" data-action="showAddSkill">
-                    <i class="fas fa-plus"></i
-                    ><span data-i18n="profile.addSkill">إضافة مهارة</span>
+                  <div class="section-title">
+                    <div class="section-icon"><i class="fas fa-gem"></i></div>
+                    <h3 data-i18n="profile.mySkills">مهاراتي</h3>
+                  </div>
+                  <button
+                    class="btn btn-glow btn-add"
+                    data-action="showAddSkill"
+                  >
+                    <i class="fas fa-plus"></i>
+                    <span data-i18n="profile.addSkill">إضافة مهارة</span>
                   </button>
                 </div>
                 <div id="profile-skills-list" class="profile-items-list"></div>
@@ -363,21 +465,21 @@
               <!-- My Quests Section -->
               <div class="profile-section">
                 <div class="section-header">
-                  <h3 data-i18n="profile.myQuests">مهامي</h3>
-                  <button class="btn-add-section" data-action="showAddQuest">
-                    <i class="fas fa-plus"></i
-                    ><span data-i18n="profile.addQuest">إضافة مهمة</span>
+                  <div class="section-title">
+                    <div class="section-icon">
+                      <i class="fas fa-scroll"></i>
+                    </div>
+                    <h3 data-i18n="profile.myQuests">مهامي اليومية</h3>
+                  </div>
+                  <button
+                    class="btn btn-glow btn-add"
+                    data-action="showAddQuest"
+                  >
+                    <i class="fas fa-plus"></i>
+                    <span data-i18n="profile.addQuest">إضافة مهمة</span>
                   </button>
                 </div>
                 <div id="profile-quests-list" class="profile-items-list"></div>
-              </div>
-
-              <!-- Activity Log Section -->
-              <div class="profile-section">
-                <div class="section-header">
-                  <h3 data-i18n="profile.activityLog">سجل النشاط</h3>
-                </div>
-                <div id="activity-log-list" class="activity-list"></div>
               </div>
             </div>
           </section>
@@ -385,18 +487,48 @@
           <!-- Settings Page -->
           <section id="settings" class="page">
             <div class="settings-container">
+              <div class="page-hero small">
+                <div class="hero-glow"></div>
+                <h1 class="page-hero-title" data-i18n="settings.heroTitle">
+                  الإعدادات
+                </h1>
+              </div>
+
               <div class="settings-card">
-                <h3 data-i18n="settings.language">اللغة</h3>
+                <div class="settings-card-header">
+                  <div class="settings-icon"><i class="fas fa-globe"></i></div>
+                  <h3 data-i18n="settings.language">اللغة</h3>
+                </div>
                 <div class="setting-row">
                   <label data-i18n="settings.selectLanguage">اختر اللغة</label>
-                  <select id="language-select" data-action="changeLanguage">
-                    <option value="ar">العربية</option>
-                    <option value="en">English</option>
-                  </select>
+                  <div class="lang-toggle">
+                    <button
+                      class="lang-btn active"
+                      data-lang="ar"
+                      data-action="changeLanguage"
+                      data-value="ar"
+                    >
+                      العربية
+                    </button>
+                    <button
+                      class="lang-btn"
+                      data-lang="en"
+                      data-action="changeLanguage"
+                      data-value="en"
+                    >
+                      English
+                    </button>
+                  </div>
                 </div>
               </div>
+
               <div class="settings-card">
-                <h3 data-i18n="settings.appearance">المظهر</h3>
+                <div class="settings-card-header">
+                  <div class="settings-icon">
+                    <i class="fas fa-palette"></i>
+                  </div>
+                  <h3 data-i18n="settings.appearance">المظهر</h3>
+                </div>
                 <div class="setting-row">
                   <label data-i18n="settings.themeColor">لون الموقع</label>
                   <div class="color-picker">
@@ -405,63 +537,120 @@
                       data-color="indigo"
                       data-action="changeColor"
                       style="background: #6366f1"
-                    ></button>
+                    >
+                      <span class="color-check"
+                        ><i class="fas fa-check"></i
+                      ></span>
+                    </button>
                     <button
                       class="color-option"
                       data-color="emerald"
                       data-action="changeColor"
                       style="background: #10b981"
-                    ></button>
+                    >
+                      <span class="color-check"
+                        ><i class="fas fa-check"></i
+                      ></span>
+                    </button>
                     <button
                       class="color-option"
                       data-color="rose"
                       data-action="changeColor"
                       style="background: #f43f5e"
-                    ></button>
+                    >
+                      <span class="color-check"
+                        ><i class="fas fa-check"></i
+                      ></span>
+                    </button>
                     <button
                       class="color-option"
                       data-color="amber"
                       data-action="changeColor"
                       style="background: #f59e0b"
-                    ></button>
+                    >
+                      <span class="color-check"
+                        ><i class="fas fa-check"></i
+                      ></span>
+                    </button>
                     <button
                       class="color-option"
                       data-color="cyan"
                       data-action="changeColor"
                       style="background: #06b6d4"
-                    ></button>
+                    >
+                      <span class="color-check"
+                        ><i class="fas fa-check"></i
+                      ></span>
+                    </button>
                   </div>
                 </div>
                 <div class="setting-row">
                   <label data-i18n="settings.darkMode">الوضع الداكن</label>
-                  <div class="theme-toggle-wrapper">
-                    <button
-                      class="theme-toggle"
-                      data-action="toggleDarkMode"
-                      id="dark-mode-toggle"
-                      aria-pressed="true"
-                    ></button>
-                  </div>
-                </div>
-              </div>
-              <div class="settings-card danger-zone">
-                <h3 data-i18n="settings.account">الحساب</h3>
-                <div class="setting-row">
                   <button
-                    class="btn btn-reset"
-                    data-action="resetLevel"
-                    data-i18n="settings.resetLevel"
+                    class="theme-toggle"
+                    data-action="toggleDarkMode"
+                    id="dark-mode-toggle"
+                    aria-pressed="true"
                   >
-                    <i class="fas fa-undo"></i> إعادة تعيين المستوى والخبرة
+                    <div class="toggle-track">
+                      <div class="toggle-thumb">
+                        <i class="fas fa-moon moon-icon"></i>
+                        <i class="fas fa-sun sun-icon"></i>
+                      </div>
+                    </div>
                   </button>
                 </div>
-                <div class="setting-row">
+              </div>
+
+              <div class="settings-card danger-zone">
+                <div class="settings-card-header">
+                  <div class="settings-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                  </div>
+                  <h3 data-i18n="settings.account">الحساب</h3>
+                </div>
+                <div class="setting-row danger">
+                  <div class="danger-info">
+                    <span class="danger-label" data-i18n="settings.resetLevel"
+                      >إعادة تعيين المستوى</span
+                    >
+                    <span class="danger-desc">تصفير XP والمستوى</span>
+                  </div>
                   <button
-                    class="btn btn-danger"
-                    data-action="deleteAccount"
-                    data-i18n="settings.deleteAccount"
+                    class="btn btn-outline-danger"
+                    data-action="resetLevel"
                   >
-                    <i class="fas fa-trash"></i> حذف الحساب
+                    <i class="fas fa-undo"></i>
+                    <span data-i18n="settings.resetLevel">تصفير</span>
+                  </button>
+                </div>
+                <div class="setting-row danger">
+                  <div class="danger-info">
+                    <span class="danger-label" data-i18n="settings.resetData"
+                      >حذف المهارات والمهام</span
+                    >
+                    <span class="danger-desc">يحافظ على الإحصائيات</span>
+                  </div>
+                  <button
+                    class="btn btn-outline-danger"
+                    data-action="resetData"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                    <span data-i18n="settings.resetData">حذف البيانات</span>
+                  </button>
+                </div>
+                <div class="setting-row danger">
+                  <div class="danger-info">
+                    <span
+                      class="danger-label"
+                      data-i18n="settings.deleteAccount"
+                      >حذف الحساب</span
+                    >
+                    <span class="danger-desc">حذف كامل لا يمكن التراجع</span>
+                  </div>
+                  <button class="btn btn-danger" data-action="deleteAccount">
+                    <i class="fas fa-trash"></i>
+                    <span data-i18n="settings.deleteAccount">حذف</span>
                   </button>
                 </div>
               </div>
@@ -475,40 +664,60 @@
     <div id="add-skill-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 data-i18n="profile.addSkill">إضافة مهارة</h3>
+          <div class="modal-title">
+            <div class="modal-icon"><i class="fas fa-gem"></i></div>
+            <h3 data-i18n="profile.addSkill">إضافة مهارة</h3>
+          </div>
           <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
             <label data-i18n="skills.name">الاسم</label>
-            <input type="text" id="new-skill-name" />
+            <input
+              type="text"
+              id="new-skill-name"
+              placeholder="مثال: القوة البدنية"
+            />
           </div>
           <div class="form-group">
             <label data-i18n="skills.description">الوصف</label>
-            <textarea id="new-skill-description"></textarea>
+            <textarea
+              id="new-skill-description"
+              placeholder="وصف المهارة..."
+            ></textarea>
           </div>
-          <div class="form-group">
-            <label data-i18n="skills.icon">الأيقونة</label>
-            <select id="new-skill-icon" class="icon-select">
-              <option value="fa-star">⭐ نجمة</option>
-              <option value="fa-fire">🔥 نار</option>
-              <option value="fa-bolt">⚡ برق</option>
-              <option value="fa-heart">❤️ قلب</option>
-              <option value="fa-brain">🧠 عقل</option>
-              <option value="fa-dumbbell">🏋️ قوة</option>
-              <option value="fa-running">🏃 سرعة</option>
-              <option value="fa-eye">👁️ إدراك</option>
-              <option value="fa-shield-alt">🛡️ درع</option>
-              <option value="fa-magic">✨ سحر</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label data-i18n="skills.color">اللون</label>
-            <input type="color" id="new-skill-color" value="#6366f1" />
-          </div>
-          <div class="form-group">
-            <label data-i18n="skills.xpReward">مكافأة الخبرة</label>
-            <input type="number" id="new-skill-xp" value="25" min="1" />
+          <div class="form-row">
+            <div class="form-group">
+              <label data-i18n="skills.icon">الأيقونة</label>
+              <select id="new-skill-icon" class="icon-select">
+                <option value="fa-star">⭐ نجمة</option>
+                <option value="fa-fire">🔥 نار</option>
+                <option value="fa-bolt">⚡ برق</option>
+                <option value="fa-heart">❤️ قلب</option>
+                <option value="fa-brain">🧠 عقل</option>
+                <option value="fa-dumbbell">🏋️ قوة</option>
+                <option value="fa-running">🏃 سرعة</option>
+                <option value="fa-eye">👁️ إدراك</option>
+                <option value="fa-shield-alt">🛡️ درع</option>
+                <option value="fa-magic">✨ سحر</option>
+                <option value="fa-fist-raised">👊 قبضة</option>
+                <option value="fa-khanda">⚔️ سيف</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="skills.color">اللون</label>
+              <input type="color" id="new-skill-color" value="#6366f1" />
+            </div>
+            <div class="form-group">
+              <label data-i18n="skills.xpReward">XP</label>
+              <input
+                type="number"
+                id="new-skill-xp"
+                value="25"
+                min="1"
+                max="1000"
+              />
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -520,7 +729,7 @@
             إلغاء
           </button>
           <button
-            class="btn btn-primary"
+            class="btn btn-glow"
             data-action="saveNewSkill"
             data-i18n="common.add"
           >
@@ -534,7 +743,10 @@
     <div id="edit-skill-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 data-i18n="skills.editTitle">تعديل المهارة</h3>
+          <div class="modal-title">
+            <div class="modal-icon"><i class="fas fa-pen"></i></div>
+            <h3 data-i18n="skills.editTitle">تعديل المهارة</h3>
+          </div>
           <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
         <div class="modal-body">
@@ -547,28 +759,32 @@
             <label data-i18n="skills.description">الوصف</label>
             <textarea id="edit-skill-description"></textarea>
           </div>
-          <div class="form-group">
-            <label data-i18n="skills.icon">الأيقونة</label>
-            <select id="edit-skill-icon" class="icon-select">
-              <option value="fa-star">⭐ نجمة</option>
-              <option value="fa-fire">🔥 نار</option>
-              <option value="fa-bolt">⚡ برق</option>
-              <option value="fa-heart">❤️ قلب</option>
-              <option value="fa-brain">🧠 عقل</option>
-              <option value="fa-dumbbell">🏋️ قوة</option>
-              <option value="fa-running">🏃 سرعة</option>
-              <option value="fa-eye">👁️ إدراك</option>
-              <option value="fa-shield-alt">🛡️ درع</option>
-              <option value="fa-magic">✨ سحر</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label data-i18n="skills.color">اللون</label>
-            <input type="color" id="edit-skill-color" value="#6366f1" />
-          </div>
-          <div class="form-group">
-            <label data-i18n="skills.xpReward">مكافأة الخبرة</label>
-            <input type="number" id="edit-skill-xp" value="25" min="1" />
+          <div class="form-row">
+            <div class="form-group">
+              <label data-i18n="skills.icon">الأيقونة</label>
+              <select id="edit-skill-icon" class="icon-select">
+                <option value="fa-star">⭐ نجمة</option>
+                <option value="fa-fire">🔥 نار</option>
+                <option value="fa-bolt">⚡ برق</option>
+                <option value="fa-heart">❤️ قلب</option>
+                <option value="fa-brain">🧠 عقل</option>
+                <option value="fa-dumbbell">🏋️ قوة</option>
+                <option value="fa-running">🏃 سرعة</option>
+                <option value="fa-eye">👁️ إدراك</option>
+                <option value="fa-shield-alt">🛡️ درع</option>
+                <option value="fa-magic">✨ سحر</option>
+                <option value="fa-fist-raised">👊 قبضة</option>
+                <option value="fa-khanda">⚔️ سيف</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="skills.color">اللون</label>
+              <input type="color" id="edit-skill-color" value="#6366f1" />
+            </div>
+            <div class="form-group">
+              <label data-i18n="skills.xpReward">XP</label>
+              <input type="number" id="edit-skill-xp" min="1" max="1000" />
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -580,7 +796,7 @@
             إلغاء
           </button>
           <button
-            class="btn btn-primary"
+            class="btn btn-glow"
             data-action="saveSkillEdit"
             data-i18n="common.save"
           >
@@ -594,21 +810,37 @@
     <div id="add-quest-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 data-i18n="profile.addQuest">إضافة مهمة</h3>
+          <div class="modal-title">
+            <div class="modal-icon"><i class="fas fa-scroll"></i></div>
+            <h3 data-i18n="profile.addQuest">إضافة مهمة</h3>
+          </div>
           <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
             <label data-i18n="quests.title">العنوان</label>
-            <input type="text" id="new-quest-title" />
+            <input
+              type="text"
+              id="new-quest-title"
+              placeholder="مثال: قراءة 10 صفحات"
+            />
           </div>
           <div class="form-group">
             <label data-i18n="quests.description">الوصف</label>
-            <textarea id="new-quest-description"></textarea>
+            <textarea
+              id="new-quest-description"
+              placeholder="وصف المهمة..."
+            ></textarea>
           </div>
           <div class="form-group">
-            <label data-i18n="quests.xpReward">مكافأة الخبرة</label>
-            <input type="number" id="new-quest-xp" value="10" min="1" />
+            <label data-i18n="quests.xpReward">XP</label>
+            <input
+              type="number"
+              id="new-quest-xp"
+              value="10"
+              min="1"
+              max="1000"
+            />
           </div>
         </div>
         <div class="modal-footer">
@@ -620,7 +852,7 @@
             إلغاء
           </button>
           <button
-            class="btn btn-primary"
+            class="btn btn-glow"
             data-action="saveNewQuest"
             data-i18n="common.add"
           >
@@ -634,7 +866,10 @@
     <div id="edit-quest-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 data-i18n="quests.editTitle">تعديل المهمة</h3>
+          <div class="modal-title">
+            <div class="modal-icon"><i class="fas fa-pen"></i></div>
+            <h3 data-i18n="quests.editTitle">تعديل المهمة</h3>
+          </div>
           <button class="modal-close" data-action="closeModal">&times;</button>
         </div>
         <div class="modal-body">
@@ -648,8 +883,8 @@
             <textarea id="edit-quest-description"></textarea>
           </div>
           <div class="form-group">
-            <label data-i18n="quests.xpReward">مكافأة الخبرة</label>
-            <input type="number" id="edit-quest-xp" min="1" />
+            <label data-i18n="quests.xpReward">XP</label>
+            <input type="number" id="edit-quest-xp" min="1" max="1000" />
           </div>
         </div>
         <div class="modal-footer">
@@ -661,7 +896,7 @@
             إلغاء
           </button>
           <button
-            class="btn btn-primary"
+            class="btn btn-glow"
             data-action="saveQuestEdit"
             data-i18n="common.save"
           >
@@ -681,7 +916,7 @@
     <script type="module" src="js/quests.js"></script>
     <script type="module" src="js/friends.js"></script>
     <script type="module" src="js/ui.js"></script>
-    <script type="module" src="js/app.js"></script>
     <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>
