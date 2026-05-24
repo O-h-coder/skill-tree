@@ -78,12 +78,16 @@ const PAGE_ICONS = {
 const XP_CONFIG = {
   baseXp: 50,
   rankTitles: {
-    E: { min: 1, max: 10, title: "E-Rank Hunter" },
-    D: { min: 11, max: 20, title: "D-Rank Hunter" },
-    C: { min: 21, max: 30, title: "C-Rank Hunter" },
-    B: { min: 31, max: 40, title: "B-Rank Hunter" },
-    A: { min: 41, max: 50, title: "A-Rank Hunter" },
-    S: { min: 51, max: Infinity, title: "S-Rank Hunter" },
+    F: { min: 1, max: 10, title: "F-Rank Hunter" },
+    E: { min: 11, max: 20, title: "E-Rank Hunter" },
+    D: { min: 21, max: 30, title: "D-Rank Hunter" },
+    C: { min: 31, max: 40, title: "C-Rank Hunter" },
+    B: { min: 41, max: 50, title: "B-Rank Hunter" },
+    A: { min: 51, max: 60, title: "A-Rank Hunter" },
+    S: { min: 61, max: 70, title: "S-Rank Hunter" },
+    SS: { min: 71, max: 80, title: "SS-Rank Hunter" },
+    SSS: { min: 81, max: 90, title: "SSS-Rank Hunter" },
+    X: { min: 91, max: Infinity, title: "X-Rank Hunter" },
   },
 };
 
