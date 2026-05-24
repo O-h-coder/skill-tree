@@ -54,25 +54,6 @@
   box-shadow: 0 0 30px var(--primary-glow);
 }
 
-.avatar-ring {
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: var(--primary);
-  border-right-color: var(--secondary);
-  animation: avatarSpin 8s linear infinite;
-}
-
-@keyframes avatarSpin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .avatar-overlay {
   position: absolute;
   inset: 0;

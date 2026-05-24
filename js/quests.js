@@ -20,7 +20,6 @@ export async function loadQuests() {
     .from("quests")
     .select("*")
     .eq("user_id", user.id)
-    .eq("completed", false)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -126,11 +125,24 @@ export function renderQuests() {
     return;
   }
 
-  list.innerHTML = currentQuests
-    .map(
-      (quest) => `
-      <div class="quest-card" data-quest-id="${quest.id}">
-        <button class="quest-checkbox" data-action="completeQuest" data-id="${quest.id}">
+  // Sort: uncompleted first, then completed
+  const sortedQuests = [...currentQuests].sort((a, b) => {
+    if (a.completed === b.completed) return 0;
+    return a.completed ? 1 : -1;
+  });
+
+  list.innerHTML = sortedQuests
+    .map((quest) => {
+      const isCompleted = quest.completed === true;
+      const cardClass = isCompleted ? "completed" : "";
+      const checkboxDisabled = isCompleted ? "disabled" : "";
+      const checkboxAction = isCompleted
+        ? ""
+        : `data-action="completeQuest" data-id="${quest.id}"`;
+
+      return `
+      <div class="quest-card ${cardClass}" data-quest-id="${quest.id}">
+        <button class="quest-checkbox" ${checkboxAction} ${checkboxDisabled}>
           <i class="fas fa-check"></i>
         </button>
         <div class="quest-content">
@@ -139,7 +151,7 @@ export function renderQuests() {
         </div>
         <span class="quest-reward"><i class="fas fa-bolt"></i> ${quest.xp_reward} <span data-i18n="profile.xp">XP</span></span>
       </div>
-    `,
-    )
+    `;
+    })
     .join("");
 }

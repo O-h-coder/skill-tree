@@ -106,7 +106,7 @@ export function renderSkills() {
 
       return `
     <div class="skill-card ${cardClass}" data-skill-id="${skill.id}" ${clickAction} style="${cursorStyle}">
-      <div class="skill-icon" style="background: ${skill.color || "#6366f1"}20; color: ${skill.color || "#6366f1"}">
+      <div class="skill-icon" style="background: var(--primary)20; color: var(--primary)">
         <i class="fas ${skill.icon || "fa-star"}"></i>
       </div>
       <h3 class="skill-name">${skill.name}</h3>

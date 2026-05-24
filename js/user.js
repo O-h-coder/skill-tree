@@ -184,7 +184,7 @@ export async function addSkill(name, description, icon, color, xpReward) {
         name: name.trim(),
         description: description?.trim() || "",
         icon: icon || "fa-star",
-        color: color || "#6366f1",
+        color: null,
         xp_reward: parseInt(xpReward) || 25,
         completed: false,
         created_at: new Date().toISOString(),
@@ -216,7 +216,7 @@ export async function editSkill(skillId, updates) {
       name: updates.name?.trim(),
       description: updates.description?.trim(),
       icon: updates.icon,
-      color: updates.color,
+      color: null,
       xp_reward: parseInt(updates.xp_reward) || 25,
       updated_at: new Date().toISOString(),
     })
@@ -479,7 +479,9 @@ async function getFriendCount() {
 
 // ===== Render Profile Items =====
 export async function renderProfileItems() {
+  await loadProfileSkills();
   await renderProfileSkills();
+  await loadProfileQuests();
   await renderProfileQuests();
   await renderActivityLog();
 }
@@ -497,7 +499,7 @@ export function renderProfileSkills() {
     .map(
       (s) => `
     <div class="profile-item" data-skill-id="${s.id}">
-      <div class="profile-item-icon skill" style="background: ${s.color}20; color: ${s.color}">
+      <div class="profile-item-icon skill" style="background: var(--primary)20; color: var(--primary)">
         <i class="fas ${s.icon}"></i>
       </div>
       <div class="profile-item-content">
@@ -619,7 +621,6 @@ export function openAddSkillModal() {
     document.getElementById("new-skill-name").value = "";
     document.getElementById("new-skill-description").value = "";
     document.getElementById("new-skill-icon").value = "fa-star";
-    document.getElementById("new-skill-color").value = "#6366f1";
     document.getElementById("new-skill-xp").value = "25";
   }
 }
@@ -637,8 +638,6 @@ export function openEditSkillModal(skillId) {
     document.getElementById("edit-skill-description").value =
       skill.description || "";
     document.getElementById("edit-skill-icon").value = skill.icon || "fa-star";
-    document.getElementById("edit-skill-color").value =
-      skill.color || "#6366f1";
     document.getElementById("edit-skill-xp").value = skill.xp_reward || 25;
   }
 }
@@ -648,7 +647,6 @@ export async function saveSkillEdit() {
   const name = document.getElementById("edit-skill-name")?.value;
   const desc = document.getElementById("edit-skill-description")?.value;
   const icon = document.getElementById("edit-skill-icon")?.value;
-  const color = document.getElementById("edit-skill-color")?.value;
   const xp = document.getElementById("edit-skill-xp")?.value;
 
   if (!name?.trim()) {
@@ -660,7 +658,6 @@ export async function saveSkillEdit() {
     name,
     description: desc,
     icon,
-    color,
     xp_reward: xp,
   });
   closeModal("edit-skill-modal");
@@ -671,7 +668,6 @@ export async function saveNewSkill() {
   const name = document.getElementById("new-skill-name")?.value;
   const desc = document.getElementById("new-skill-description")?.value;
   const icon = document.getElementById("new-skill-icon")?.value || "fa-star";
-  const color = document.getElementById("new-skill-color")?.value || "#6366f1";
   const xp = document.getElementById("new-skill-xp")?.value || "25";
 
   if (!name?.trim()) {
@@ -679,7 +675,7 @@ export async function saveNewSkill() {
     return;
   }
 
-  await addSkill(name, desc, icon, color, xp);
+  await addSkill(name, desc, icon, xp);
   closeModal("add-skill-modal");
 }
 
