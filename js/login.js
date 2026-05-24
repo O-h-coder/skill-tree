@@ -1,3 +1,33 @@
+const loginAttempts = new Map();
+
+function checkRateLimit(email) {
+  const now = Date.now();
+  const attempt = loginAttempts.get(email);
+
+  if (!attempt) {
+    loginAttempts.set(email, { count: 1, firstAttempt: now, lastAttempt: now });
+    return { allowed: true };
+  }
+
+  const timeWindow = 15 * 60 * 1000; // 15 دقيقة
+
+  if (now - attempt.firstAttempt > timeWindow) {
+    loginAttempts.set(email, { count: 1, firstAttempt: now, lastAttempt: now });
+    return { allowed: true };
+  }
+
+  if (attempt.count >= 5) {
+    const waitTime = Math.ceil(
+      (timeWindow - (now - attempt.firstAttempt)) / 60000,
+    );
+    return { allowed: false, waitTime };
+  }
+
+  attempt.count++;
+  attempt.lastAttempt = now;
+  return { allowed: true };
+}
+
 // ===== Login Page =====
 import { initSupabase, getSupabase } from "./supabase.js";
 import { signUp, signIn } from "./auth.js";
@@ -77,8 +107,25 @@ async function handleLogin(e) {
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    notify("Invalid email format", "error");
+    return;
+  }
+
+  if (password.length < 6) {
+    notify("Password must be at least 6 characters", "error");
+    return;
+  }
+
   if (!email || !password) {
     notify(t("login.fillAllFields"), "error");
+    return;
+  }
+
+  const rateCheck = checkRateLimit(email);
+  if (!rateCheck.allowed) {
+    notify(`Too many attempts. Wait ${rateCheck.waitTime} minutes.`, "error");
     return;
   }
 
@@ -123,6 +170,32 @@ async function handleRegister(e) {
   const username = document.getElementById("register-username").value.trim();
   const email = document.getElementById("register-email").value.trim();
   const password = document.getElementById("register-password").value;
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    notify("Invalid email format", "error");
+    return;
+  }
+
+  if (password.length < 8) {
+    notify("Password must be at least 8 characters", "error");
+    return;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    notify("Password must contain at least one uppercase letter", "error");
+    return;
+  }
+
+  if (!/[0-9]/.test(password)) {
+    notify("Password must contain at least one number", "error");
+    return;
+  }
+
+  if (username.length < 3 || username.length > 20) {
+    notify("Username must be 3-20 characters", "error");
+    return;
+  }
 
   if (!username || !email || !password) {
     notify(t("login.fillAllFields"), "error");

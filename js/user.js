@@ -69,13 +69,17 @@ export async function uploadAvatar(file) {
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
   if (!file || file.size === 0) return { error: new Error("No file selected") };
-  if (!file.type.startsWith("image/"))
-    return { error: new Error("Please select an image file") };
-  if (file.size > 2 * 1024 * 1024)
-    return { error: new Error("Image size must be less than 2MB") };
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    return { error: new Error("Only JPG, PNG, WebP allowed") };
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    return { error: new Error("Max 2MB") };
+  }
 
   const fileExt = file.name.split(".").pop().toLowerCase();
-  const allowedExts = ["jpg", "jpeg", "png", "gif", "webp"];
+  const allowedExts = ["jpg", "jpeg", "png", "webp"];
   if (!allowedExts.includes(fileExt))
     return { error: new Error("Invalid image format") };
 
