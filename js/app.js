@@ -111,6 +111,9 @@ async function init() {
       initSupabase();
       startApp();
     };
+    script.onerror = () => {
+      notify("Failed to load Supabase library. Please refresh.", "error");
+    };
     document.head.appendChild(script);
   } else {
     initSupabase();
@@ -145,22 +148,24 @@ async function startApp() {
     setupEventDelegation();
     initMobileNav();
 
-    await renderProfilePage();
-    await loadSkills();
+    // Load data with individual error boundaries - don't let one failure crash everything
+    await safeLoad("renderProfilePage", () => renderProfilePage());
+    await safeLoad("loadSkills", () => loadSkills());
     renderSkills();
-    await loadQuests();
+    await safeLoad("loadQuests", () => loadQuests());
     renderQuests();
-    await loadFriends();
+    await safeLoad("loadFriends", () => loadFriends());
     renderFriends();
-    await loadFriendRequests();
+    await safeLoad("loadFriendRequests", () => loadFriendRequests());
     renderRequests();
-    await updateBadges();
-    await loadNotifications();
+    await safeLoad("updateBadges", () => updateBadges());
+    await safeLoad("loadNotifications", () => loadNotifications());
     setLoadFriendRequestsFn(loadFriendRequests);
 
-    await initXpEngine();
-    await loadThemeColor();
+    await safeLoad("initXpEngine", () => initXpEngine());
+    await safeLoad("loadThemeColor", () => loadThemeColor());
 
+    // Check system preference
     if (
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: light)").matches
@@ -177,6 +182,16 @@ async function startApp() {
     notify("Failed to initialize app. Please refresh.", "error");
   } finally {
     showLoading(false);
+  }
+}
+
+// Safe load wrapper - catches errors per module so one failure doesn't crash the app
+async function safeLoad(name, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`safeLoad [${name}] error:`, err);
+    return null;
   }
 }
 
@@ -268,7 +283,11 @@ function setupEventDelegation() {
       case "completeSkill":
         if (id) {
           showLoading(true);
-          const result = await completeSkill(id);
+          try {
+            await completeSkill(id);
+          } catch (err) {
+            console.error("completeSkill error:", err);
+          }
           showLoading(false);
         }
         break;
@@ -276,7 +295,15 @@ function setupEventDelegation() {
       case "completeQuest":
         if (id) {
           showLoading(true);
-          const result = await completeQuest(id);
+          try {
+            const result = await completeQuest(id);
+            if (result && !result.error) {
+              // Add XP for completing quest
+              await addXp(50);
+            }
+          } catch (err) {
+            console.error("completeQuest error:", err);
+          }
           showLoading(false);
         }
         break;
@@ -287,7 +314,11 @@ function setupEventDelegation() {
 
       case "saveNewSkill": {
         showLoading(true);
-        await saveNewSkill();
+        try {
+          await saveNewSkill();
+        } catch (err) {
+          console.error("saveNewSkill error:", err);
+        }
         showLoading(false);
         break;
       }
@@ -298,7 +329,11 @@ function setupEventDelegation() {
 
       case "saveSkillEdit": {
         showLoading(true);
-        await saveSkillEdit();
+        try {
+          await saveSkillEdit();
+        } catch (err) {
+          console.error("saveSkillEdit error:", err);
+        }
         showLoading(false);
         break;
       }
@@ -306,7 +341,11 @@ function setupEventDelegation() {
       case "deleteProfileSkill":
         if (id && confirm(t("common.confirmDelete"))) {
           showLoading(true);
-          await deleteSkill(id);
+          try {
+            await deleteSkill(id);
+          } catch (err) {
+            console.error("deleteSkill error:", err);
+          }
           showLoading(false);
         }
         break;
@@ -317,7 +356,11 @@ function setupEventDelegation() {
 
       case "saveNewQuest": {
         showLoading(true);
-        await saveNewQuest();
+        try {
+          await saveNewQuest();
+        } catch (err) {
+          console.error("saveNewQuest error:", err);
+        }
         showLoading(false);
         break;
       }
@@ -328,7 +371,11 @@ function setupEventDelegation() {
 
       case "saveQuestEdit": {
         showLoading(true);
-        await saveQuestEdit();
+        try {
+          await saveQuestEdit();
+        } catch (err) {
+          console.error("saveQuestEdit error:", err);
+        }
         showLoading(false);
         break;
       }
@@ -336,7 +383,11 @@ function setupEventDelegation() {
       case "deleteProfileQuest":
         if (id && confirm(t("common.confirmDelete"))) {
           showLoading(true);
-          await deleteQuest(id);
+          try {
+            await deleteQuest(id);
+          } catch (err) {
+            console.error("deleteQuest error:", err);
+          }
           showLoading(false);
         }
         break;
@@ -351,7 +402,11 @@ function setupEventDelegation() {
         const input = document.getElementById("friend-search-input");
         if (input) {
           showLoading(true);
-          await searchUsers(input.value);
+          try {
+            await searchUsers(input.value);
+          } catch (err) {
+            console.error("searchUsers error:", err);
+          }
           showLoading(false);
         }
         break;
@@ -360,37 +415,53 @@ function setupEventDelegation() {
       case "sendRequest":
         if (id) {
           showLoading(true);
-          await sendFriendRequest(id);
+          try {
+            await sendFriendRequest(id);
+            const searchInput = document.getElementById("friend-search-input");
+            if (searchInput) await searchUsers(searchInput.value);
+          } catch (err) {
+            console.error("sendFriendRequest error:", err);
+          }
           showLoading(false);
-          const searchInput = document.getElementById("friend-search-input");
-          if (searchInput) await searchUsers(searchInput.value);
         }
         break;
 
       case "acceptRequest":
         if (id) {
           showLoading(true);
-          await acceptFriendRequest(id);
+          try {
+            await acceptFriendRequest(id);
+            await loadNotifications();
+            setLoadFriendRequestsFn(loadFriendRequests);
+          } catch (err) {
+            console.error("acceptFriendRequest error:", err);
+          }
           showLoading(false);
-          await loadNotifications();
-          setLoadFriendRequestsFn(loadFriendRequests);
         }
         break;
 
       case "declineRequest":
         if (id) {
           showLoading(true);
-          await declineFriendRequest(id);
+          try {
+            await declineFriendRequest(id);
+            await loadNotifications();
+            setLoadFriendRequestsFn(loadFriendRequests);
+          } catch (err) {
+            console.error("declineFriendRequest error:", err);
+          }
           showLoading(false);
-          await loadNotifications();
-          setLoadFriendRequestsFn(loadFriendRequests);
         }
         break;
 
       case "removeFriend":
         if (id && confirm(t("common.confirmDelete"))) {
           showLoading(true);
-          await removeFriend(id);
+          try {
+            await removeFriend(id);
+          } catch (err) {
+            console.error("removeFriend error:", err);
+          }
           showLoading(false);
         }
         break;
@@ -465,7 +536,11 @@ function setupEventDelegation() {
   if (avatarInput) {
     avatarInput.addEventListener("change", async (e) => {
       showLoading(true);
-      await handleAvatarChange(e);
+      try {
+        await handleAvatarChange(e);
+      } catch (err) {
+        console.error("handleAvatarChange error:", err);
+      }
       showLoading(false);
     });
   }
@@ -475,7 +550,11 @@ function setupEventDelegation() {
     friendSearchInput.addEventListener("keypress", async (e) => {
       if (e.key === "Enter") {
         showLoading(true);
-        await searchUsers(friendSearchInput.value);
+        try {
+          await searchUsers(friendSearchInput.value);
+        } catch (err) {
+          console.error("searchUsers error:", err);
+        }
         showLoading(false);
       }
     });
@@ -532,32 +611,47 @@ function navigateToPage(page) {
   }
 
   if (page === "profile") {
-    renderProfilePage().then(() => {
-      renderProfileItems();
-    });
+    renderProfilePage()
+      .then(() => {
+        renderProfileItems();
+      })
+      .catch((err) => console.error("navigateToPage profile error:", err));
   } else if (page === "friends") {
-    loadFriends().then(renderFriends);
-    loadFriendRequests().then(() => {
-      renderRequests();
-      updateBadges();
-    });
+    loadFriends()
+      .then(renderFriends)
+      .catch((err) => console.error("navigateToPage friends error:", err));
+    loadFriendRequests()
+      .then(() => {
+        renderRequests();
+        updateBadges();
+      })
+      .catch((err) => console.error("navigateToPage requests error:", err));
   } else if (page === "skillTree") {
-    loadSkills().then(renderSkills);
+    loadSkills()
+      .then(renderSkills)
+      .catch((err) => console.error("navigateToPage skills error:", err));
   } else if (page === "dailyQuests") {
-    loadQuests().then(renderQuests);
+    loadQuests()
+      .then(renderQuests)
+      .catch((err) => console.error("navigateToPage quests error:", err));
   }
 }
 
 // ===== Logout =====
 async function handleLogout() {
   showLoading(true);
-  const { error } = await signOut();
-  showLoading(false);
-  if (error) {
-    notify(error.message, "error");
-    return;
+  try {
+    const { error } = await signOut();
+    if (error) {
+      notify(error.message, "error");
+      showLoading(false);
+      return;
+    }
+    window.location.href = "login.html";
+  } catch (err) {
+    console.error("handleLogout error:", err);
+    showLoading(false);
   }
-  window.location.href = "login.html";
 }
 
 // ===== Reset Level & XP =====
@@ -567,27 +661,33 @@ async function handleResetLevel() {
   if (!supabase || !user) return;
 
   showLoading(true);
-  await updateStats({ level: 1, xp: 0 });
-
-  updateXpDisplay(calculateLevel(0));
-
-  notify(
-    t("settings.resetSuccess") || "تم إعادة تعيين المستوى بنجاح",
-    "success",
-  );
+  try {
+    await updateStats({ level: 1, xp: 0 });
+    updateXpDisplay(calculateLevel(0));
+    notify(
+      t("settings.resetSuccess") || "تم إعادة تعيين المستوى بنجاح",
+      "success",
+    );
+  } catch (err) {
+    console.error("handleResetLevel error:", err);
+  }
   showLoading(false);
 }
 
 // ===== Reset Data (Skills & Quests only) =====
 async function handleResetData() {
   showLoading(true);
-  const { error } = await resetUserData();
-  if (!error) {
-    await loadSkills();
-    renderSkills();
-    await loadQuests();
-    renderQuests();
-    await renderProfileItems();
+  try {
+    const { error } = await resetUserData();
+    if (!error) {
+      await loadSkills();
+      renderSkills();
+      await loadQuests();
+      renderQuests();
+      await renderProfileItems();
+    }
+  } catch (err) {
+    console.error("handleResetData error:", err);
   }
   showLoading(false);
 }
@@ -599,20 +699,23 @@ async function handleDeleteAccount() {
   if (!supabase || !user) return;
 
   showLoading(true);
+  try {
+    await supabase.from("skills").delete().eq("user_id", user.id);
+    await supabase.from("quests").delete().eq("user_id", user.id);
+    await supabase
+      .from("friendships")
+      .delete()
+      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+    await supabase.from("activity_history").delete().eq("user_id", user.id);
+    await supabase.from("user_stats").delete().eq("user_id", user.id);
+    await supabase.from("profiles").delete().eq("id", user.id);
 
-  await supabase.from("skills").delete().eq("user_id", user.id);
-  await supabase.from("quests").delete().eq("user_id", user.id);
-  await supabase
-    .from("friendships")
-    .delete()
-    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-  await supabase.from("activity_history").delete().eq("user_id", user.id);
-  await supabase.from("user_stats").delete().eq("user_id", user.id);
-  await supabase.from("profiles").delete().eq("id", user.id);
-
-  await signOut();
-  showLoading(false);
-  window.location.href = "login.html";
+    await signOut();
+    window.location.href = "login.html";
+  } catch (err) {
+    console.error("handleDeleteAccount error:", err);
+    showLoading(false);
+  }
 }
 
 // ===== XP / Level Engine =====
@@ -671,43 +774,47 @@ export async function addXp(amount) {
   const user = await getCurrentUser();
   if (!supabase || !user) return;
 
-  const { data: stats } = await supabase
-    .from("user_stats")
-    .select("xp, level")
-    .eq("user_id", user.id)
-    .single();
+  try {
+    const { data: stats } = await supabase
+      .from("user_stats")
+      .select("xp, level")
+      .eq("user_id", user.id)
+      .single();
 
-  const currentXp = stats?.xp || 0;
-  const currentLevel = stats?.level || 1;
+    const currentXp = stats?.xp || 0;
+    const currentLevel = stats?.level || 1;
 
-  const newXp = currentXp + amount;
-  const newStats = calculateLevel(newXp);
+    const newXp = currentXp + amount;
+    const newStats = calculateLevel(newXp);
 
-  const { error } = await supabase.from("user_stats").upsert(
-    {
-      user_id: user.id,
-      xp: newXp,
-      level: newStats.level,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
-
-  if (error) {
-    console.error("Add XP error:", error);
-    return;
-  }
-
-  if (newStats.level > currentLevel) {
-    notify(
-      `${t("xp.levelUp") || "Level Up!"} — ${getRankTitle(newStats.level)} (Lv.${newStats.level})`,
-      "success",
+    const { error } = await supabase.from("user_stats").upsert(
+      {
+        user_id: user.id,
+        xp: newXp,
+        level: newStats.level,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
     );
-  } else {
-    notify(`+${amount} XP`, "info");
-  }
 
-  updateXpDisplay(newStats);
+    if (error) {
+      console.error("Add XP error:", error);
+      return;
+    }
+
+    if (newStats.level > currentLevel) {
+      notify(
+        `${t("xp.levelUp") || "Level Up!"} — ${getRankTitle(newStats.level)} (Lv.${newStats.level})`,
+        "success",
+      );
+    } else {
+      notify(`+${amount} XP`, "info");
+    }
+
+    updateXpDisplay(newStats);
+  } catch (err) {
+    console.error("addXp exception:", err);
+  }
 }
 
 export function updateXpDisplay(stats) {
@@ -762,15 +869,19 @@ export async function initXpEngine() {
   const user = await getCurrentUser();
   if (!supabase || !user) return;
 
-  const { data: stats } = await supabase
-    .from("user_stats")
-    .select("xp, level")
-    .eq("user_id", user.id)
-    .single();
+  try {
+    const { data: stats } = await supabase
+      .from("user_stats")
+      .select("xp, level")
+      .eq("user_id", user.id)
+      .single();
 
-  const xp = stats?.xp || 0;
-  const levelStats = calculateLevel(xp);
-  updateXpDisplay(levelStats);
+    const xp = stats?.xp || 0;
+    const levelStats = calculateLevel(xp);
+    updateXpDisplay(levelStats);
+  } catch (err) {
+    console.error("initXpEngine error:", err);
+  }
 }
 
 // ===== Global Theme =====
@@ -796,10 +907,14 @@ async function saveThemeColor(colorName) {
   const user = await getCurrentUser();
   if (!supabase || !user) return;
 
-  await supabase
-    .from("profiles")
-    .update({ theme_color: colorName })
-    .eq("id", user.id);
+  try {
+    await supabase
+      .from("profiles")
+      .update({ theme_color: colorName })
+      .eq("id", user.id);
+  } catch (err) {
+    console.error("saveThemeColor error:", err);
+  }
 }
 
 export async function loadThemeColor() {
@@ -807,27 +922,31 @@ export async function loadThemeColor() {
   const user = await getCurrentUser();
   if (!supabase || !user) return;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("theme_color")
-    .eq("id", user.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("theme_color")
+      .eq("id", user.id)
+      .single();
 
-  if (error || !data?.theme_color) return;
+    if (error || !data?.theme_color) return;
 
-  const colorName = data.theme_color;
-  const colors = THEME_COLORS[colorName];
-  if (!colors) return;
+    const colorName = data.theme_color;
+    const colors = THEME_COLORS[colorName];
+    if (!colors) return;
 
-  const root = document.documentElement;
-  root.style.setProperty("--primary", colors.primary);
-  root.style.setProperty("--primary-dark", colors.primaryDark);
-  root.style.setProperty("--primary-light", colors.primaryLight);
-  root.style.setProperty("--primary-glow", `${colors.primary}66`);
+    const root = document.documentElement;
+    root.style.setProperty("--primary", colors.primary);
+    root.style.setProperty("--primary-dark", colors.primaryDark);
+    root.style.setProperty("--primary-light", colors.primaryLight);
+    root.style.setProperty("--primary-glow", `${colors.primary}66`);
 
-  document.querySelectorAll(".color-option").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.color === colorName);
-  });
+    document.querySelectorAll(".color-option").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.color === colorName);
+    });
+  } catch (err) {
+    console.error("loadThemeColor error:", err);
+  }
 }
 
 function toggleDarkMode() {
