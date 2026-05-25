@@ -186,18 +186,15 @@ async function startApp() {
 
     // Setup auth state listener ONCE only
     if (!authInitialized) {
-      const supabase = await getSupabase();
-      if (supabase) {
-        const { data } = supabase.auth.onAuthStateChange((event, session) => {
-          console.log("[Auth] Event:", event);
-          if (event === "SIGNED_OUT") {
-            clearCachedUser();
-            window.location.href = "login.html";
-          }
-          // cachedUser is updated internally in auth.js by onAuthStateChange
-        });
-        authSubscription = data.subscription;
-      }
+      const { subscription } = onAuthStateChange((event, session) => {
+        console.log("[Auth] Event:", event);
+        if (event === "SIGNED_OUT") {
+          clearCachedUser();
+          window.location.href = "login.html";
+        }
+        // cachedUser is updated internally in auth.js by onAuthStateChange
+      });
+      authSubscription = subscription;
       authInitialized = true;
     }
 
@@ -207,7 +204,7 @@ async function startApp() {
       refreshInterval = setInterval(
         async () => {
           try {
-            const supabase = await getSupabase();
+            const supabase = getSupabase();
             if (!supabase) return;
             const {
               data: { user },
@@ -665,7 +662,7 @@ async function handleLogout() {
 
 // ===== Reset Level & XP =====
 async function handleResetLevel() {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -701,7 +698,7 @@ async function handleResetData() {
 
 // ===== Delete Account =====
 async function handleDeleteAccount() {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -785,7 +782,7 @@ export function getXpForLevel(level) {
 export async function addXp(amount) {
   if (!amount || amount <= 0) return;
 
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -875,7 +872,7 @@ export function updateXpDisplay(stats) {
 }
 
 export async function initXpEngine() {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -909,7 +906,7 @@ export function setThemeColor(colorName) {
 }
 
 async function saveThemeColor(colorName) {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -920,7 +917,7 @@ async function saveThemeColor(colorName) {
 }
 
 export async function loadThemeColor() {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
