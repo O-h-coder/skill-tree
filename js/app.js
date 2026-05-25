@@ -68,6 +68,7 @@ let isDarkMode = true;
 let authInitialized = false;
 let authSubscription = null;
 let appInitialized = false;
+let refreshInterval = null;
 
 // ===== Page Icons =====
 const PAGE_ICONS = {
@@ -185,16 +186,52 @@ async function startApp() {
 
     // Setup auth state listener ONCE only
     if (!authInitialized) {
-      const { subscription } = onAuthStateChange((event, session) => {
-        console.log("[Auth] Event:", event);
-        if (event === "SIGNED_OUT") {
-          clearCachedUser();
-          window.location.href = "login.html";
-        }
-        // cachedUser is updated internally in auth.js by onAuthStateChange
-      });
-      authSubscription = subscription;
+      const supabase = await getSupabase();
+      if (supabase) {
+        const { data } = supabase.auth.onAuthStateChange((event, session) => {
+          console.log("[Auth] Event:", event);
+          if (event === "SIGNED_OUT") {
+            clearCachedUser();
+            window.location.href = "login.html";
+          }
+          // cachedUser is updated internally in auth.js by onAuthStateChange
+        });
+        authSubscription = data.subscription;
+      }
       authInitialized = true;
+    }
+
+    // Manual session refresh every 5 minutes (since autoRefresh is OFF)
+    // This prevents token expiry while avoiding refresh storms
+    if (!refreshInterval) {
+      refreshInterval = setInterval(
+        async () => {
+          try {
+            const supabase = await getSupabase();
+            if (!supabase) return;
+            const {
+              data: { user },
+              error,
+            } = await supabase.auth.getUser();
+            if (error || !user) {
+              console.warn("[Auth] Manual refresh failed, signing out");
+              clearCachedUser();
+              if (authSubscription) {
+                authSubscription.unsubscribe();
+                authSubscription = null;
+              }
+              authInitialized = false;
+              window.location.href = "login.html";
+            } else {
+              setCachedUser(user);
+              console.log("[Auth] Manual refresh OK");
+            }
+          } catch (e) {
+            console.error("[Auth] Manual refresh error:", e);
+          }
+        },
+        5 * 60 * 1000,
+      ); // 5 minutes
     }
 
     await loadSkillModules();
@@ -607,6 +644,10 @@ function navigateToPage(page) {
 // ===== Logout =====
 async function handleLogout() {
   showLoading(true);
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
   if (authSubscription) {
     authSubscription.unsubscribe();
     authSubscription = null;
@@ -624,7 +665,7 @@ async function handleLogout() {
 
 // ===== Reset Level & XP =====
 async function handleResetLevel() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -660,7 +701,7 @@ async function handleResetData() {
 
 // ===== Delete Account =====
 async function handleDeleteAccount() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -676,6 +717,10 @@ async function handleDeleteAccount() {
   await supabase.from("user_stats").delete().eq("user_id", user.id);
   await supabase.from("profiles").delete().eq("id", user.id);
 
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
   if (authSubscription) {
     authSubscription.unsubscribe();
     authSubscription = null;
@@ -740,7 +785,7 @@ export function getXpForLevel(level) {
 export async function addXp(amount) {
   if (!amount || amount <= 0) return;
 
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -830,7 +875,7 @@ export function updateXpDisplay(stats) {
 }
 
 export async function initXpEngine() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -864,7 +909,7 @@ export function setThemeColor(colorName) {
 }
 
 async function saveThemeColor(colorName) {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 
@@ -875,7 +920,7 @@ async function saveThemeColor(colorName) {
 }
 
 export async function loadThemeColor() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const user = getCurrentUser();
   if (!supabase || !user) return;
 

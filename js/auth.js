@@ -7,13 +7,13 @@ let initPromise = null;
 
 /**
  * initAuth() — called ONCE in startApp().
- * Does getSession() one time to populate cachedUser.
- * All subsequent getCurrentUser() calls read from memory (synchronous).
+ * Does getSession() ONE TIME only to populate cachedUser.
+ * All subsequent getCurrentUser() calls read from memory (synchronous, zero network).
  */
 export async function initAuth() {
   if (initPromise) return initPromise;
   initPromise = (async () => {
-    const supabase = getSupabase();
+    const supabase = await getSupabase();
     if (!supabase) {
       cachedUser = null;
       return null;
@@ -33,8 +33,8 @@ export async function initAuth() {
 }
 
 /**
- * getCurrentUser() — SYNCHRONOUS. Reads from memory only.
- * NO getSession(). NO network request. NO refresh trigger.
+ * getCurrentUser() — PURE SYNCHRONOUS. Reads from memory only.
+ * NO getSession(). NO network request. NO refresh trigger. EVER.
  */
 export function getCurrentUser() {
   return cachedUser;
@@ -51,10 +51,10 @@ export function clearCachedUser() {
 
 /**
  * getUserFromServer — ONLY when you need to verify with Supabase server.
- * This DOES make a network request. Use sparingly.
+ * This DOES make a network request. Use sparingly (e.g. manual refresh).
  */
 export async function getUserFromServer() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   if (!supabase) return null;
   const {
     data: { user },
@@ -65,7 +65,7 @@ export async function getUserFromServer() {
 }
 
 export async function getSession() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   if (!supabase) return null;
   const {
     data: { session },
@@ -76,7 +76,7 @@ export async function getSession() {
 }
 
 export async function signUp(email, password, username) {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   if (!supabase) return { error: new Error("Supabase not initialized") };
 
   const { data, error } = await supabase.auth.signUp({
@@ -121,7 +121,7 @@ export async function signUp(email, password, username) {
 }
 
 export async function signIn(email, password) {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   if (!supabase) return { error: new Error("Supabase not initialized") };
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -135,7 +135,7 @@ export async function signIn(email, password) {
 }
 
 export async function signOut() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   if (!supabase) return { error: new Error("Supabase not initialized") };
 
   clearCachedUser();
@@ -145,13 +145,30 @@ export async function signOut() {
 
 export function onAuthStateChange(callback) {
   const supabase = getSupabase();
+  // getSupabase might return a Promise now, handle it
+  if (supabase && supabase.then) {
+    supabase.then((client) => {
+      if (!client) return { data: { subscription: null } };
+      const { data } = client.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT") cachedUser = null;
+        else if (
+          event === "TOKEN_REFRESHED" ||
+          event === "USER_UPDATED" ||
+          event === "INITIAL_SESSION"
+        ) {
+          if (session?.user) cachedUser = session.user;
+        }
+        callback(event, session);
+      });
+      return data;
+    });
+    return { data: { subscription: null } };
+  }
   if (!supabase) return { data: { subscription: null } };
 
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    // Update cachedUser internally so getCurrentUser() always returns fresh data
-    if (event === "SIGNED_OUT") {
-      cachedUser = null;
-    } else if (
+    if (event === "SIGNED_OUT") cachedUser = null;
+    else if (
       event === "TOKEN_REFRESHED" ||
       event === "USER_UPDATED" ||
       event === "INITIAL_SESSION"

@@ -2,41 +2,44 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./constants.js";
 
 let supabase = null;
+let initPromise = null;
 
 export function initSupabase() {
   if (supabase) return supabase;
+  if (initPromise) return initPromise;
   if (!window.supabase) {
     console.error("[Supabase] Library not loaded yet");
     return null;
   }
 
-  try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        storageKey: "skilltree-auth-token",
-        flowType: "pkce",
-      },
-      global: {
-        headers: {
-          "x-application-name": "skilltree",
+  initPromise = new Promise((resolve) => {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          autoRefreshToken: false, // ← DISABLED: prevents refresh storm
+          persistSession: true, // keep session in localStorage
+          detectSessionInUrl: true,
+          storageKey: "skilltree-auth-token",
+          flowType: "pkce",
         },
-      },
-    });
-    console.log("[Supabase] Client initialized");
-  } catch (err) {
-    console.error("[Supabase] Failed to create client:", err);
-    return null;
-  }
+        global: {
+          headers: {
+            "x-application-name": "skilltree",
+          },
+        },
+      });
+      console.log("[Supabase] Client initialized (autoRefresh: OFF)");
+      resolve(supabase);
+    } catch (err) {
+      console.error("[Supabase] Failed to create client:", err);
+      resolve(null);
+    }
+  });
 
-  return supabase;
+  return initPromise;
 }
 
-export function getSupabase() {
-  if (!supabase) {
-    return initSupabase();
-  }
-  return supabase;
+export async function getSupabase() {
+  if (supabase) return supabase;
+  return await initSupabase();
 }
