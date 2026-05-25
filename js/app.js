@@ -260,6 +260,7 @@ async function startApp() {
 
     await initXpEngine();
     await loadThemeColor();
+    await initOnboarding();
 
     if (
       window.matchMedia &&
@@ -547,6 +548,32 @@ function setupEventDelegation() {
         break;
       }
 
+      case "showOnboarding":
+        showOnboarding();
+        break;
+
+      case "closeOnboarding":
+        hideOnboarding();
+        break;
+
+      case "skipOnboarding":
+        hideOnboarding();
+        break;
+
+      case "nextOnboarding":
+        nextOnboardingSlide();
+        break;
+
+      case "prevOnboarding":
+        prevOnboardingSlide();
+        break;
+
+      case "resetOnboarding":
+        if (confirm(t("common.confirmDelete"))) {
+          await resetOnboarding();
+        }
+        break;
+
       case "closeModal":
         closeAllModals();
         break;
@@ -571,6 +598,14 @@ function setupEventDelegation() {
     });
   }
 
+  // Onboarding dot clicks
+  document.querySelectorAll(".onboarding-dot").forEach((dot) => {
+    dot.addEventListener("click", () => {
+      const idx = parseInt(dot.dataset.dot, 10);
+      if (!isNaN(idx)) goToOnboardingSlide(idx);
+    });
+  });
+
   const friendSearchInput = document.getElementById("friend-search-input");
   if (friendSearchInput) {
     friendSearchInput.addEventListener("keypress", async (e) => {
@@ -588,8 +623,19 @@ function setupEventDelegation() {
     });
   });
 
+  const onboardingOverlay = document.getElementById("onboarding-overlay");
+  if (onboardingOverlay) {
+    onboardingOverlay.addEventListener("click", (e) => {
+      if (e.target === onboardingOverlay) hideOnboarding();
+    });
+  }
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      if (onboardingVisible) {
+        hideOnboarding();
+        return;
+      }
       closeAllModals();
       closeNotifications();
       closeMobileSidebar();
@@ -896,6 +942,145 @@ export async function initXpEngine() {
   const xp = stats?.xp || 0;
   const levelStats = calculateLevel(xp);
   updateXpDisplay(levelStats);
+}
+
+// ===== Onboarding Config =====
+const ONBOARDING_SLIDE_COUNT = 6;
+let currentOnboardingSlide = 0;
+let onboardingVisible = false;
+
+// ===== Onboarding =====
+
+export function showOnboarding() {
+  const overlay = document.getElementById("onboarding-overlay");
+  if (!overlay) return;
+  currentOnboardingSlide = 0;
+  onboardingVisible = true;
+  renderOnboardingSlide();
+  overlay.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+export function hideOnboarding() {
+  const overlay = document.getElementById("onboarding-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  onboardingVisible = false;
+  document.body.style.overflow = "";
+}
+
+function renderOnboardingSlide() {
+  const slides = document.querySelectorAll(".onboarding-slide");
+  const dots = document.querySelectorAll(".onboarding-dot");
+  const prevBtn = document.querySelector('[data-action="prevOnboarding"]');
+  const nextBtn = document.querySelector('[data-action="nextOnboarding"]');
+  const skipBtn = document.querySelector('[data-action="skipOnboarding"]');
+
+  slides.forEach((slide, i) => {
+    slide.classList.toggle("active", i === currentOnboardingSlide);
+  });
+
+  dots.forEach((dot, i) => {
+    dot.classList.toggle("active", i === currentOnboardingSlide);
+  });
+
+  if (prevBtn) {
+    prevBtn.style.visibility =
+      currentOnboardingSlide === 0 ? "hidden" : "visible";
+  }
+
+  if (nextBtn) {
+    const isLast = currentOnboardingSlide === ONBOARDING_SLIDE_COUNT - 1;
+    nextBtn.innerHTML = `<i class="fas ${isLast ? "fa-rocket" : "fa-arrow-right"}"></i> <span>${t(isLast ? "onboarding.finish" : "onboarding.next")}</span>`;
+  }
+
+  if (skipBtn) {
+    skipBtn.style.visibility =
+      currentOnboardingSlide === ONBOARDING_SLIDE_COUNT - 1
+        ? "hidden"
+        : "visible";
+  }
+}
+
+function nextOnboardingSlide() {
+  if (currentOnboardingSlide < ONBOARDING_SLIDE_COUNT - 1) {
+    currentOnboardingSlide++;
+    renderOnboardingSlide();
+  } else {
+    finishOnboarding();
+  }
+}
+
+function prevOnboardingSlide() {
+  if (currentOnboardingSlide > 0) {
+    currentOnboardingSlide--;
+    renderOnboardingSlide();
+  }
+}
+
+function goToOnboardingSlide(index) {
+  if (index >= 0 && index < ONBOARDING_SLIDE_COUNT) {
+    currentOnboardingSlide = index;
+    renderOnboardingSlide();
+  }
+}
+
+async function finishOnboarding() {
+  const dontShow =
+    document.getElementById("onboarding-dont-show")?.checked || false;
+  if (dontShow) {
+    await saveOnboardingPreference(true);
+  }
+  hideOnboarding();
+}
+
+async function saveOnboardingPreference(seen) {
+  const supabase = getSupabase();
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
+
+  await supabase
+    .from("profiles")
+    .update({ onboarding_seen: seen })
+    .eq("id", user.id);
+}
+
+export async function resetOnboarding() {
+  const supabase = getSupabase();
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
+
+  showLoading(true);
+  await supabase
+    .from("profiles")
+    .update({ onboarding_seen: false })
+    .eq("id", user.id);
+  showLoading(false);
+
+  notify(t("onboarding.resetSuccess"), "success");
+}
+
+async function initOnboarding() {
+  const supabase = getSupabase();
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("onboarding_seen")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    console.error("initOnboarding error:", error);
+    return;
+  }
+
+  const seen = data?.onboarding_seen ?? false;
+  if (!seen) {
+    // Small delay so the app finishes rendering
+    setTimeout(() => showOnboarding(), 600);
+  }
 }
 
 // ===== Global Theme =====

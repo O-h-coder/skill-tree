@@ -118,6 +118,31 @@ const dictionary = {
     "login.registerSuccess": "تم إنشاء الحساب بنجاح",
     "login.registerSuccessVerify": "تم إنشاء الحساب! تحقق من بريدك لتفعيله.",
     "xp.levelUp": "ترقية مستوى!",
+    "onboarding.title1": "أهلاً بك في عالم Skill Tree!",
+    "onboarding.desc1":
+      "هنا بتطور نفسك بطريقة ممتعة زي الألعاب. كل مهارة أو مهمة بتعملها بتكسبك نقاط خبرة (XP) وترفع مستواك من E-Rank لحد X-Rank. جاهز تبدأ رحلتك؟",
+    "onboarding.title2": "💎 صفحة المهارات",
+    "onboarding.desc2": `دي أهدافك الكبيرة زي "تعلم برمجة" أو "تحسين اللياقة". كل مهارة ليها نقاط XP. اضغط على أي مهارة متاحة (باللون الأزرق) عشان تكملها وتكسب XP فوراً. المهارات المكتملة بتتحول للون الأخضر.`,
+    "onboarding.title3": "📜 المهام اليومية",
+    "onboarding.desc3": `مهام بسيطة لازم تعملها كل يوم زي "قراءة 10 صفحات" أو "مشي 30 دقيقة". بتتجدد تلقائياً كل يوم عند منتصف الليل. اضغط على المربع □ عشان تكمل المهمة وتكسب XP.`,
+    "onboarding.title4": "👥 زملاء الصيد",
+    "onboarding.desc4":
+      "ضف أصدقائك وشوف مستواهم ورتبتهم. تقدر تبعت طلب صداقة، تقبل طلبات، وتمسح زملاء. القائمة مرتبة حسب المستوى — حاول توصل للقمة!",
+    "onboarding.title5": "🪪 ملفك الشخصي",
+    "onboarding.desc5":
+      "هنا تقدر تتابع كل تقدمك: مستواك، XP، عدد الزملاء. كمان تقدر تضيف/تعدل/تمسح مهارات ومهام من هنا. سجل النشاط بيوضح كل حاجة عملتها. ومتنساش ترفع صورتك الشخصية!",
+    "onboarding.title6": "⚙️ الإعدادات",
+    "onboarding.desc6":
+      "خصص تجربتك: غير اللغة بين العربية والإنجليزية، اختار لون الموقع اللي يعجبك (Indigo, Emerald, Rose, Amber, Cyan)، وبدل بين الوضع الداكن والفاتح. لو حبيت ترجع للدليل ده، هتلاقيه هنا برضه!",
+    "onboarding.skip": "تخطي",
+    "onboarding.next": "التالي",
+    "onboarding.prev": "السابق",
+    "onboarding.finish": "ابدأ",
+    "onboarding.dontShow": "لا تظهر مرة أخرى",
+    "onboarding.helpSection": "المساعدة",
+    "onboarding.guideBtn": "الدليل التفاعلي",
+    "onboarding.resetGuide": "إعادة ضبط الدليل",
+    "onboarding.resetSuccess": "تم إعادة ضبط الدليل",
   },
   en: {
     "app.title": "Skill Tree",
@@ -239,6 +264,33 @@ const dictionary = {
     "login.registerSuccessVerify":
       "Account created! Check your email to verify.",
     "xp.levelUp": "Level Up!",
+    "onboarding.title1": "Welcome to Skill Tree!",
+    "onboarding.desc1":
+      "Here you develop yourself in a fun, game-like way. Every skill or quest you complete earns you XP and levels you up from E-Rank to X-Rank. Ready to start your journey?",
+    "onboarding.title2": "💎 Skills Page",
+    "onboarding.desc2":
+      'These are your big goals like "Learn Programming" or "Improve Fitness". Each skill has XP points. Click any available skill (blue) to complete it and earn XP instantly. Completed skills turn green.',
+    "onboarding.title3": "📜 Daily Quests",
+    "onboarding.desc3":
+      'Simple tasks to do every day like "Read 10 pages" or "Walk 30 mins". They reset automatically every midnight. Click the checkbox □ to complete the quest and earn XP.',
+    "onboarding.title4": "👥 Hunter Guild",
+    "onboarding.desc4":
+      "Add friends and see their levels and ranks. You can send requests, accept invitations, and remove friends. The list is sorted by level — try to reach the top!",
+    "onboarding.title5": "🪪 Your Profile",
+    "onboarding.desc5":
+      "Track all your progress: level, XP, friend count. You can also add/edit/delete skills and quests from here. The activity log shows everything you've done. And don't forget to upload your avatar!",
+    "onboarding.title6": "⚙️ Settings",
+    "onboarding.desc6":
+      "Customize your experience: switch language between Arabic and English, pick your favorite theme color (Indigo, Emerald, Rose, Amber, Cyan), and toggle dark/light mode. If you want to see this guide again, you'll find it here too!",
+    "onboarding.skip": "Skip",
+    "onboarding.next": "Next",
+    "onboarding.prev": "Previous",
+    "onboarding.finish": "Start",
+    "onboarding.dontShow": "Don't show again",
+    "onboarding.helpSection": "Help",
+    "onboarding.guideBtn": "Interactive Guide",
+    "onboarding.resetGuide": "Reset Guide",
+    "onboarding.resetSuccess": "Guide reset successfully",
   },
 };
 

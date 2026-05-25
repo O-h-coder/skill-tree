@@ -261,3 +261,45 @@
     padding: 20px;
   }
 }
+
+/* ===== Help Zone (Onboarding) ===== */
+.help-zone {
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.help-zone .settings-card-header .settings-icon {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.help-zone h3 {
+  color: var(--primary-light);
+}
+
+.help-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-help {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-help:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--primary-glow);
+}
+
+.btn-outline-help {
+  background: transparent;
+  color: var(--primary-light);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.btn-outline-help:hover {
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
