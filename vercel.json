@@ -2,6 +2,13 @@
   "version": 2,
   "routes": [
     {
+      "src": "/sitemap.xml",
+      "dest": "/sitemap.xml",
+      "headers": {
+        "Content-Type": "application/xml"
+      }
+    },
+    {
       "src": "/(.*)",
       "dest": "/$1",
       "headers": {
