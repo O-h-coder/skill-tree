@@ -2,24 +2,69 @@
 import { getSupabase } from "./supabase.js";
 import { t } from "./i18n.js";
 
+// Cached user to avoid repeated getSession() calls
+let cachedUser = null;
+let isRefreshing = false;
+let refreshPromise = null;
+
+/**
+ * getCurrentUser - reads from LOCAL session, caches result, prevents concurrent calls
+ * Uses getSession() which reads from memory/localStorage (NO network request).
+ * BUT getSession() can trigger auto-refresh if token is near expiry.
+ * We cache the result and prevent multiple concurrent calls to avoid refresh storms.
+ */
 export async function getCurrentUser() {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-  if (error || !session || !session.user) return null;
-  return session.user;
+  if (cachedUser) return cachedUser;
+  if (isRefreshing) return refreshPromise;
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      isRefreshing = false;
+      refreshPromise = null;
+      return null;
+    }
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+    if (error || !session || !session.user) {
+      cachedUser = null;
+      isRefreshing = false;
+      refreshPromise = null;
+      return null;
+    }
+    cachedUser = session.user;
+    isRefreshing = false;
+    refreshPromise = null;
+    return cachedUser;
+  })();
+
+  return refreshPromise;
 }
 
+export function clearCachedUser() {
+  cachedUser = null;
+  isRefreshing = false;
+  refreshPromise = null;
+}
+
+export function getCachedUser() {
+  return cachedUser;
+}
+
+/**
+ * getUserFromServer - ONLY use this when you need to verify with the server
+ * This DOES make a network request. Use sparingly.
+ */
 export async function getUserFromServer() {
   const supabase = getSupabase();
   if (!supabase) return null;
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(); // ← network request
   if (error || !user) return null;
   return user;
 }
@@ -94,6 +139,7 @@ export async function signOut() {
   const supabase = getSupabase();
   if (!supabase) return { error: new Error("Supabase not initialized") };
 
+  clearCachedUser();
   const { error } = await supabase.auth.signOut();
   return { error };
 }
@@ -108,6 +154,9 @@ export function onAuthStateChange(callback) {
   return data;
 }
 
+/**
+ * requireAuth - checks session locally, redirects only on real failure
+ */
 export async function requireAuth() {
   const user = await getCurrentUser();
   if (!user) {

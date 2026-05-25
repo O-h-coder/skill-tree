@@ -6,18 +6,31 @@ let supabase = null;
 export function initSupabase() {
   if (supabase) return supabase;
   if (!window.supabase) {
-    console.error("Supabase library not loaded");
+    console.error("[Supabase] Library not loaded yet");
     return null;
   }
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storageKey: "skilltree-auth-token",
-      flowType: "pkce",
-    },
-  });
+
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storageKey: "skilltree-auth-token",
+        flowType: "pkce",
+      },
+      global: {
+        headers: {
+          "x-application-name": "skilltree",
+        },
+      },
+    });
+    console.log("[Supabase] Client initialized");
+  } catch (err) {
+    console.error("[Supabase] Failed to create client:", err);
+    return null;
+  }
+
   return supabase;
 }
 

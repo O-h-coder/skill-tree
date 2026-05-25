@@ -2,6 +2,8 @@
 import { initSupabase, getSupabase } from "./supabase.js";
 import {
   getCurrentUser,
+  getCachedUser,
+  clearCachedUser,
   getSession,
   signOut,
   onAuthStateChange,
@@ -65,14 +67,16 @@ let isSidebarCollapsed = false;
 let isDarkMode = true;
 let authInitialized = false;
 let authSubscription = null;
+let appInitialized = false;
 
+// ===== Cached User (avoid repeated getSession calls) =====
 let currentUser = null;
 
-export function getCachedUser() {
+export function getAppUser() {
   return currentUser;
 }
 
-export function setCachedUser(user) {
+export function setAppUser(user) {
   currentUser = user;
 }
 
@@ -125,13 +129,44 @@ const THEME_COLORS = {
 
 // ===== Initialization =====
 async function init() {
+  // Prevent multiple init calls (e.g. from DOMContentLoaded + script load)
+  if (appInitialized) {
+    console.log("[App] init() already running, skipping...");
+    return;
+  }
+  appInitialized = true;
+
   if (!window.supabase) {
+    // Check if script tag already exists to avoid duplicates
+    const existingScript = document.querySelector(
+      'script[src*="supabase.min.js"]',
+    );
+    if (existingScript) {
+      // Wait for existing script to load
+      if (!existingScript.dataset.loaded) {
+        existingScript.addEventListener("load", () => {
+          existingScript.dataset.loaded = "true";
+          initSupabase();
+          startApp();
+        });
+        return;
+      }
+      initSupabase();
+      startApp();
+      return;
+    }
+
     const script = document.createElement("script");
     script.src =
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
     script.onload = () => {
+      script.dataset.loaded = "true";
       initSupabase();
       startApp();
+    };
+    script.onerror = () => {
+      console.error("[App] Failed to load Supabase library");
+      notify("Failed to load required libraries. Please refresh.", "error");
     };
     document.head.appendChild(script);
   } else {
@@ -150,6 +185,8 @@ async function startApp() {
       return;
     }
 
+    // Cache the user locally ONCE to avoid repeated getSession() calls
+    // getCurrentUser() now has internal caching + concurrent call prevention
     currentUser = await getCurrentUser();
     if (!currentUser) {
       window.location.href = "login.html";
@@ -161,12 +198,13 @@ async function startApp() {
     if (appEl) appEl.classList.remove("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
 
-    // Setup auth state listener ONCE
+    // Setup auth state listener ONCE only
     if (!authInitialized) {
       const { subscription } = onAuthStateChange((event, session) => {
         console.log("[Auth] Event:", event);
         if (event === "SIGNED_OUT") {
           currentUser = null;
+          clearCachedUser();
           window.location.href = "login.html";
         } else if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
           if (session && session.user) {
@@ -592,12 +630,14 @@ function navigateToPage(page) {
 // ===== Logout =====
 async function handleLogout() {
   showLoading(true);
+  // Unsubscribe from auth listener to prevent race-condition redirect
   if (authSubscription) {
     authSubscription.unsubscribe();
     authSubscription = null;
     authInitialized = false;
   }
   currentUser = null;
+  clearCachedUser();
   const { error } = await signOut();
   showLoading(false);
   if (error) {
@@ -669,6 +709,7 @@ async function handleDeleteAccount() {
     authInitialized = false;
   }
   currentUser = null;
+  clearCachedUser();
 
   await signOut();
   showLoading(false);
