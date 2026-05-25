@@ -9,6 +9,13 @@
       }
     },
     {
+      "src": "/robots.txt",
+      "dest": "/robots.txt",
+      "headers": {
+        "Content-Type": "text/plain"
+      }
+    },
+    {
       "src": "/(.*)",
       "dest": "/$1",
       "headers": {
