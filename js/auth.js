@@ -1,28 +1,21 @@
 // ===== Auth Module =====
 import { getSupabase } from "./supabase.js";
-import { t } from "./i18n.js";
 
-// Cached user to avoid repeated getSession() calls
+// Cached user — set once by initAuth(), updated by onAuthStateChange only
 let cachedUser = null;
-let isRefreshing = false;
-let refreshPromise = null;
+let initPromise = null;
 
 /**
- * getCurrentUser - reads from LOCAL session, caches result, prevents concurrent calls
- * Uses getSession() which reads from memory/localStorage (NO network request).
- * BUT getSession() can trigger auto-refresh if token is near expiry.
- * We cache the result and prevent multiple concurrent calls to avoid refresh storms.
+ * initAuth() — called ONCE in startApp().
+ * Does getSession() one time to populate cachedUser.
+ * All subsequent getCurrentUser() calls read from memory (synchronous).
  */
-export async function getCurrentUser() {
-  if (cachedUser) return cachedUser;
-  if (isRefreshing) return refreshPromise;
-
-  isRefreshing = true;
-  refreshPromise = (async () => {
+export async function initAuth() {
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
     const supabase = getSupabase();
     if (!supabase) {
-      isRefreshing = false;
-      refreshPromise = null;
+      cachedUser = null;
       return null;
     }
     const {
@@ -31,31 +24,33 @@ export async function getCurrentUser() {
     } = await supabase.auth.getSession();
     if (error || !session || !session.user) {
       cachedUser = null;
-      isRefreshing = false;
-      refreshPromise = null;
       return null;
     }
     cachedUser = session.user;
-    isRefreshing = false;
-    refreshPromise = null;
     return cachedUser;
   })();
+  return initPromise;
+}
 
-  return refreshPromise;
+/**
+ * getCurrentUser() — SYNCHRONOUS. Reads from memory only.
+ * NO getSession(). NO network request. NO refresh trigger.
+ */
+export function getCurrentUser() {
+  return cachedUser;
+}
+
+export function setCachedUser(user) {
+  cachedUser = user || null;
 }
 
 export function clearCachedUser() {
   cachedUser = null;
-  isRefreshing = false;
-  refreshPromise = null;
-}
-
-export function getCachedUser() {
-  return cachedUser;
+  initPromise = null;
 }
 
 /**
- * getUserFromServer - ONLY use this when you need to verify with the server
+ * getUserFromServer — ONLY when you need to verify with Supabase server.
  * This DOES make a network request. Use sparingly.
  */
 export async function getUserFromServer() {
@@ -64,7 +59,7 @@ export async function getUserFromServer() {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser(); // ← network request
+  } = await supabase.auth.getUser();
   if (error || !user) return null;
   return user;
 }
@@ -96,6 +91,8 @@ export async function signUp(email, password, username) {
   if (error) return { error };
 
   if (data.user) {
+    cachedUser = data.user;
+
     const { error: profileError } = await supabase.from("profiles").insert([
       {
         id: data.user.id,
@@ -132,6 +129,8 @@ export async function signIn(email, password) {
     password,
   });
 
+  if (data?.user) cachedUser = data.user;
+
   return { data, error };
 }
 
@@ -149,17 +148,29 @@ export function onAuthStateChange(callback) {
   if (!supabase) return { data: { subscription: null } };
 
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    // Update cachedUser internally so getCurrentUser() always returns fresh data
+    if (event === "SIGNED_OUT") {
+      cachedUser = null;
+    } else if (
+      event === "TOKEN_REFRESHED" ||
+      event === "USER_UPDATED" ||
+      event === "INITIAL_SESSION"
+    ) {
+      if (session?.user) cachedUser = session.user;
+    }
     callback(event, session);
   });
   return data;
 }
 
 /**
- * requireAuth - checks session locally, redirects only on real failure
+ * requireAuth — calls initAuth() once if needed, then checks cachedUser.
  */
 export async function requireAuth() {
-  const user = await getCurrentUser();
-  if (!user) {
+  if (!cachedUser) {
+    await initAuth();
+  }
+  if (!cachedUser) {
     window.location.href = "login.html";
     return false;
   }

@@ -2,9 +2,9 @@
 import { initSupabase, getSupabase } from "./supabase.js";
 import {
   getCurrentUser,
-  getCachedUser,
+  setCachedUser,
   clearCachedUser,
-  getSession,
+  initAuth,
   signOut,
   onAuthStateChange,
   requireAuth,
@@ -69,17 +69,6 @@ let authInitialized = false;
 let authSubscription = null;
 let appInitialized = false;
 
-// ===== Cached User (avoid repeated getSession calls) =====
-let currentUser = null;
-
-export function getAppUser() {
-  return currentUser;
-}
-
-export function setAppUser(user) {
-  currentUser = user;
-}
-
 // ===== Page Icons =====
 const PAGE_ICONS = {
   skillTree: "fa-gem",
@@ -129,7 +118,6 @@ const THEME_COLORS = {
 
 // ===== Initialization =====
 async function init() {
-  // Prevent multiple init calls (e.g. from DOMContentLoaded + script load)
   if (appInitialized) {
     console.log("[App] init() already running, skipping...");
     return;
@@ -137,12 +125,10 @@ async function init() {
   appInitialized = true;
 
   if (!window.supabase) {
-    // Check if script tag already exists to avoid duplicates
     const existingScript = document.querySelector(
       'script[src*="supabase.min.js"]',
     );
     if (existingScript) {
-      // Wait for existing script to load
       if (!existingScript.dataset.loaded) {
         existingScript.addEventListener("load", () => {
           existingScript.dataset.loaded = "true";
@@ -179,16 +165,15 @@ async function startApp() {
   try {
     showLoading(true);
 
+    // initAuth() calls getSession() ONE TIME only — populates cachedUser in auth.js
     const isAuth = await requireAuth();
     if (!isAuth) {
       showLoading(false);
       return;
     }
 
-    // Cache the user locally ONCE to avoid repeated getSession() calls
-    // getCurrentUser() now has internal caching + concurrent call prevention
-    currentUser = await getCurrentUser();
-    if (!currentUser) {
+    const user = getCurrentUser();
+    if (!user) {
       window.location.href = "login.html";
       return;
     }
@@ -203,18 +188,10 @@ async function startApp() {
       const { subscription } = onAuthStateChange((event, session) => {
         console.log("[Auth] Event:", event);
         if (event === "SIGNED_OUT") {
-          currentUser = null;
           clearCachedUser();
           window.location.href = "login.html";
-        } else if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-          if (session && session.user) {
-            currentUser = session.user;
-          }
-        } else if (event === "INITIAL_SESSION") {
-          if (session && session.user) {
-            currentUser = session.user;
-          }
         }
+        // cachedUser is updated internally in auth.js by onAuthStateChange
       });
       authSubscription = subscription;
       authInitialized = true;
@@ -630,13 +607,11 @@ function navigateToPage(page) {
 // ===== Logout =====
 async function handleLogout() {
   showLoading(true);
-  // Unsubscribe from auth listener to prevent race-condition redirect
   if (authSubscription) {
     authSubscription.unsubscribe();
     authSubscription = null;
     authInitialized = false;
   }
-  currentUser = null;
   clearCachedUser();
   const { error } = await signOut();
   showLoading(false);
@@ -650,7 +625,8 @@ async function handleLogout() {
 // ===== Reset Level & XP =====
 async function handleResetLevel() {
   const supabase = getSupabase();
-  if (!supabase || !currentUser) return;
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
 
   showLoading(true);
   await updateStats({ level: 1, xp: 0 });
@@ -685,30 +661,26 @@ async function handleResetData() {
 // ===== Delete Account =====
 async function handleDeleteAccount() {
   const supabase = getSupabase();
-  if (!supabase || !currentUser) return;
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
 
   showLoading(true);
 
-  await supabase.from("skills").delete().eq("user_id", currentUser.id);
-  await supabase.from("quests").delete().eq("user_id", currentUser.id);
+  await supabase.from("skills").delete().eq("user_id", user.id);
+  await supabase.from("quests").delete().eq("user_id", user.id);
   await supabase
     .from("friendships")
     .delete()
-    .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`);
-  await supabase
-    .from("activity_history")
-    .delete()
-    .eq("user_id", currentUser.id);
-  await supabase.from("user_stats").delete().eq("user_id", currentUser.id);
-  await supabase.from("profiles").delete().eq("id", currentUser.id);
+    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+  await supabase.from("activity_history").delete().eq("user_id", user.id);
+  await supabase.from("user_stats").delete().eq("user_id", user.id);
+  await supabase.from("profiles").delete().eq("id", user.id);
 
-  // Unsubscribe before signOut to prevent redirect race
   if (authSubscription) {
     authSubscription.unsubscribe();
     authSubscription = null;
     authInitialized = false;
   }
-  currentUser = null;
   clearCachedUser();
 
   await signOut();
@@ -769,12 +741,13 @@ export async function addXp(amount) {
   if (!amount || amount <= 0) return;
 
   const supabase = getSupabase();
-  if (!supabase || !currentUser) return;
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
 
   const { data: stats } = await supabase
     .from("user_stats")
     .select("xp, level")
-    .eq("user_id", currentUser.id)
+    .eq("user_id", user.id)
     .single();
 
   const currentXp = stats?.xp || 0;
@@ -785,7 +758,7 @@ export async function addXp(amount) {
 
   const { error } = await supabase.from("user_stats").upsert(
     {
-      user_id: currentUser.id,
+      user_id: user.id,
       xp: newXp,
       level: newStats.level,
       updated_at: new Date().toISOString(),
@@ -858,12 +831,13 @@ export function updateXpDisplay(stats) {
 
 export async function initXpEngine() {
   const supabase = getSupabase();
-  if (!supabase || !currentUser) return;
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
 
   const { data: stats } = await supabase
     .from("user_stats")
     .select("xp, level")
-    .eq("user_id", currentUser.id)
+    .eq("user_id", user.id)
     .single();
 
   const xp = stats?.xp || 0;
@@ -891,22 +865,24 @@ export function setThemeColor(colorName) {
 
 async function saveThemeColor(colorName) {
   const supabase = getSupabase();
-  if (!supabase || !currentUser) return;
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
 
   await supabase
     .from("profiles")
     .update({ theme_color: colorName })
-    .eq("id", currentUser.id);
+    .eq("id", user.id);
 }
 
 export async function loadThemeColor() {
   const supabase = getSupabase();
-  if (!supabase || !currentUser) return;
+  const user = getCurrentUser();
+  if (!supabase || !user) return;
 
   const { data, error } = await supabase
     .from("profiles")
     .select("theme_color")
-    .eq("id", currentUser.id)
+    .eq("id", user.id)
     .single();
 
   if (error || !data?.theme_color) return;
