@@ -186,14 +186,25 @@ async function startApp() {
 
     // Setup auth state listener ONCE only
     if (!authInitialized) {
-      const { subscription } = onAuthStateChange((event, session) => {
+      const { subscription } = onAuthStateChange(async (event, session) => {
         console.log("[Auth] Event:", event);
+
         if (event === "SIGNED_OUT") {
           clearCachedUser();
           window.location.href = "login.html";
+          return;
         }
+
+        // Ignore TOKEN_REFRESHED to prevent refresh loops
+        if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+          if (session?.user) {
+            setCachedUser(session.user);
+          }
+        }
+
         // cachedUser is updated internally in auth.js by onAuthStateChange
       });
+
       authSubscription = subscription;
       authInitialized = true;
     }
