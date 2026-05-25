@@ -6,6 +6,17 @@ export async function getCurrentUser() {
   const supabase = getSupabase();
   if (!supabase) return null;
   const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session || !session.user) return null;
+  return session.user;
+}
+
+export async function getUserFromServer() {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
@@ -87,13 +98,14 @@ export async function signOut() {
   return { error };
 }
 
-export async function onAuthStateChange(callback) {
+export function onAuthStateChange(callback) {
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase) return { data: { subscription: null } };
 
-  supabase.auth.onAuthStateChange((event, session) => {
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
     callback(event, session);
   });
+  return data;
 }
 
 export async function requireAuth() {

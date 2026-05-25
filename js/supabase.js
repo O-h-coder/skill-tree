@@ -14,6 +14,8 @@ export function initSupabase() {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      storageKey: "skilltree-auth-token",
+      flowType: "pkce",
     },
   });
   return supabase;

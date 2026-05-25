@@ -64,6 +64,17 @@ let currentPage = "skillTree";
 let isSidebarCollapsed = false;
 let isDarkMode = true;
 let authInitialized = false;
+let authSubscription = null;
+
+let currentUser = null;
+
+export function getCachedUser() {
+  return currentUser;
+}
+
+export function setCachedUser(user) {
+  currentUser = user;
+}
 
 // ===== Page Icons =====
 const PAGE_ICONS = {
@@ -139,17 +150,35 @@ async function startApp() {
       return;
     }
 
+    currentUser = await getCurrentUser();
+    if (!currentUser) {
+      window.location.href = "login.html";
+      return;
+    }
+
     const appEl = document.getElementById("app");
     const authOverlay = document.getElementById("auth-overlay");
     if (appEl) appEl.classList.remove("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
 
+    // Setup auth state listener ONCE
     if (!authInitialized) {
-      onAuthStateChange((event, session) => {
+      const { subscription } = onAuthStateChange((event, session) => {
+        console.log("[Auth] Event:", event);
         if (event === "SIGNED_OUT") {
+          currentUser = null;
           window.location.href = "login.html";
+        } else if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          if (session && session.user) {
+            currentUser = session.user;
+          }
+        } else if (event === "INITIAL_SESSION") {
+          if (session && session.user) {
+            currentUser = session.user;
+          }
         }
       });
+      authSubscription = subscription;
       authInitialized = true;
     }
 
@@ -563,6 +592,12 @@ function navigateToPage(page) {
 // ===== Logout =====
 async function handleLogout() {
   showLoading(true);
+  if (authSubscription) {
+    authSubscription.unsubscribe();
+    authSubscription = null;
+    authInitialized = false;
+  }
+  currentUser = null;
   const { error } = await signOut();
   showLoading(false);
   if (error) {
@@ -575,8 +610,7 @@ async function handleLogout() {
 // ===== Reset Level & XP =====
 async function handleResetLevel() {
   const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
+  if (!supabase || !currentUser) return;
 
   showLoading(true);
   await updateStats({ level: 1, xp: 0 });
@@ -611,20 +645,30 @@ async function handleResetData() {
 // ===== Delete Account =====
 async function handleDeleteAccount() {
   const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
+  if (!supabase || !currentUser) return;
 
   showLoading(true);
 
-  await supabase.from("skills").delete().eq("user_id", user.id);
-  await supabase.from("quests").delete().eq("user_id", user.id);
+  await supabase.from("skills").delete().eq("user_id", currentUser.id);
+  await supabase.from("quests").delete().eq("user_id", currentUser.id);
   await supabase
     .from("friendships")
     .delete()
-    .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-  await supabase.from("activity_history").delete().eq("user_id", user.id);
-  await supabase.from("user_stats").delete().eq("user_id", user.id);
-  await supabase.from("profiles").delete().eq("id", user.id);
+    .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`);
+  await supabase
+    .from("activity_history")
+    .delete()
+    .eq("user_id", currentUser.id);
+  await supabase.from("user_stats").delete().eq("user_id", currentUser.id);
+  await supabase.from("profiles").delete().eq("id", currentUser.id);
+
+  // Unsubscribe before signOut to prevent redirect race
+  if (authSubscription) {
+    authSubscription.unsubscribe();
+    authSubscription = null;
+    authInitialized = false;
+  }
+  currentUser = null;
 
   await signOut();
   showLoading(false);
@@ -684,13 +728,12 @@ export async function addXp(amount) {
   if (!amount || amount <= 0) return;
 
   const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
+  if (!supabase || !currentUser) return;
 
   const { data: stats } = await supabase
     .from("user_stats")
     .select("xp, level")
-    .eq("user_id", user.id)
+    .eq("user_id", currentUser.id)
     .single();
 
   const currentXp = stats?.xp || 0;
@@ -701,7 +744,7 @@ export async function addXp(amount) {
 
   const { error } = await supabase.from("user_stats").upsert(
     {
-      user_id: user.id,
+      user_id: currentUser.id,
       xp: newXp,
       level: newStats.level,
       updated_at: new Date().toISOString(),
@@ -774,13 +817,12 @@ export function updateXpDisplay(stats) {
 
 export async function initXpEngine() {
   const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
+  if (!supabase || !currentUser) return;
 
   const { data: stats } = await supabase
     .from("user_stats")
     .select("xp, level")
-    .eq("user_id", user.id)
+    .eq("user_id", currentUser.id)
     .single();
 
   const xp = stats?.xp || 0;
@@ -808,24 +850,22 @@ export function setThemeColor(colorName) {
 
 async function saveThemeColor(colorName) {
   const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
+  if (!supabase || !currentUser) return;
 
   await supabase
     .from("profiles")
     .update({ theme_color: colorName })
-    .eq("id", user.id);
+    .eq("id", currentUser.id);
 }
 
 export async function loadThemeColor() {
   const supabase = getSupabase();
-  const user = await getCurrentUser();
-  if (!supabase || !user) return;
+  if (!supabase || !currentUser) return;
 
   const { data, error } = await supabase
     .from("profiles")
     .select("theme_color")
-    .eq("id", user.id)
+    .eq("id", currentUser.id)
     .single();
 
   if (error || !data?.theme_color) return;
