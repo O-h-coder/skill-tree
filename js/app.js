@@ -68,7 +68,6 @@ let isDarkMode = true;
 let authInitialized = false;
 let authSubscription = null;
 let appInitialized = false;
-let refreshInterval = null;
 
 // ===== Page Icons =====
 const PAGE_ICONS = {
@@ -108,13 +107,21 @@ const THEME_COLORS = {
     primaryDark: "#059669",
     primaryLight: "#34d399",
   },
-  rose: { primary: "#f43f5e", primaryDark: "#e11d48", primaryLight: "#fb7185" },
+  rose: {
+    primary: "#f43f5e",
+    primaryDark: "#e11d48",
+    primaryLight: "#fb7185",
+  },
   amber: {
     primary: "#f59e0b",
     primaryDark: "#d97706",
     primaryLight: "#fbbf24",
   },
-  cyan: { primary: "#06b6d4", primaryDark: "#0891b2", primaryLight: "#22d3ee" },
+  cyan: {
+    primary: "#06b6d4",
+    primaryDark: "#0891b2",
+    primaryLight: "#22d3ee",
+  },
 };
 
 // ===== Initialization =====
@@ -123,12 +130,14 @@ async function init() {
     console.log("[App] init() already running, skipping...");
     return;
   }
+
   appInitialized = true;
 
   if (!window.supabase) {
     const existingScript = document.querySelector(
       'script[src*="supabase.min.js"]',
     );
+
     if (existingScript) {
       if (!existingScript.dataset.loaded) {
         existingScript.addEventListener("load", () => {
@@ -136,25 +145,32 @@ async function init() {
           initSupabase();
           startApp();
         });
+
         return;
       }
+
       initSupabase();
       startApp();
       return;
     }
 
     const script = document.createElement("script");
+
     script.src =
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+
     script.onload = () => {
       script.dataset.loaded = "true";
       initSupabase();
       startApp();
     };
+
     script.onerror = () => {
       console.error("[App] Failed to load Supabase library");
+
       notify("Failed to load required libraries. Please refresh.", "error");
     };
+
     document.head.appendChild(script);
   } else {
     initSupabase();
@@ -166,14 +182,16 @@ async function startApp() {
   try {
     showLoading(true);
 
-    // initAuth() calls getSession() ONE TIME only — populates cachedUser in auth.js
+    // initAuth() calls getSession() ONE TIME only
     const isAuth = await requireAuth();
+
     if (!isAuth) {
       showLoading(false);
       return;
     }
 
     const user = getCurrentUser();
+
     if (!user) {
       window.location.href = "login.html";
       return;
@@ -181,82 +199,63 @@ async function startApp() {
 
     const appEl = document.getElementById("app");
     const authOverlay = document.getElementById("auth-overlay");
+
     if (appEl) appEl.classList.remove("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
 
     // Setup auth state listener ONCE only
     if (!authInitialized) {
-      const { subscription } = onAuthStateChange(async (event, session) => {
+      const { subscription } = onAuthStateChange((event, session) => {
         console.log("[Auth] Event:", event);
 
+        // User signed out
         if (event === "SIGNED_OUT") {
           clearCachedUser();
+
+          if (authSubscription) {
+            authSubscription.unsubscribe();
+            authSubscription = null;
+          }
+
+          authInitialized = false;
+
           window.location.href = "login.html";
           return;
         }
 
-        // Ignore TOKEN_REFRESHED to prevent refresh loops
-        if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-          if (session?.user) {
-            setCachedUser(session.user);
-          }
+        // Keep cached user updated safely
+        if (session?.user) {
+          setCachedUser(session.user);
         }
-
-        // cachedUser is updated internally in auth.js by onAuthStateChange
       });
 
       authSubscription = subscription;
       authInitialized = true;
     }
 
-    // Manual session refresh every 5 minutes (since autoRefresh is OFF)
-    // This prevents token expiry while avoiding refresh storms
-    if (!refreshInterval) {
-      refreshInterval = setInterval(
-        async () => {
-          try {
-            const supabase = getSupabase();
-            if (!supabase) return;
-            const {
-              data: { user },
-              error,
-            } = await supabase.auth.getUser();
-            if (error || !user) {
-              console.warn("[Auth] Manual refresh failed, signing out");
-              clearCachedUser();
-              if (authSubscription) {
-                authSubscription.unsubscribe();
-                authSubscription = null;
-              }
-              authInitialized = false;
-              window.location.href = "login.html";
-            } else {
-              setCachedUser(user);
-              console.log("[Auth] Manual refresh OK");
-            }
-          } catch (e) {
-            console.error("[Auth] Manual refresh error:", e);
-          }
-        },
-        5 * 60 * 1000,
-      ); // 5 minutes
-    }
-
     await loadSkillModules();
+
     setupEventDelegation();
     initMobileNav();
 
     await renderProfilePage();
+
     await skillsMod.loadSkills();
     skillsMod.renderSkills();
+
     await questsMod.loadQuests();
     questsMod.renderQuests();
+
     await loadFriends();
     renderFriends();
+
     await loadFriendRequests();
     renderRequests();
+
     await updateBadges();
+
     await loadNotifications();
+
     setLoadFriendRequestsFn(loadFriendRequests);
 
     await initXpEngine();
@@ -275,6 +274,7 @@ async function startApp() {
     updatePageText();
   } catch (err) {
     console.error("startApp error:", err);
+
     notify("Failed to initialize app. Please refresh.", "error");
   } finally {
     showLoading(false);
