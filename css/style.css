@@ -206,6 +206,10 @@ body {
   color: var(--text-muted);
   font-size: 16px;
   letter-spacing: 1px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* ===== Auth Overlay ===== */
@@ -735,8 +739,8 @@ body {
 /* Notification Panel */
 .notification-panel {
   position: absolute;
-  top: 54px;
-  left: 0;
+  top: 100%;
+  left: 100%;
   width: 380px;
   max-height: 480px;
   background: var(--dark-card);
@@ -1301,6 +1305,9 @@ body.mobile-nav-open .mobile-menu-toggle {
   .mobile-menu-toggle {
     display: flex;
   }
+  #sidebar-toggle {
+    display: none;
+  }
 
   #sidebar {
     transform: translateX(100%);
@@ -1312,14 +1319,41 @@ body.mobile-nav-open .mobile-menu-toggle {
     transform: translateX(0);
   }
 
+  /* Reset collapsed styles on mobile so sidebar stays full when opened */
+  #sidebar.collapsed {
+    width: var(--sidebar-width);
+  }
+
+  #sidebar.collapsed .nav-menu span,
+  #sidebar.collapsed .sidebar-footer span,
+  #sidebar.collapsed .logo-text,
+  #sidebar.collapsed .sidebar-user-details,
+  #sidebar.collapsed .xp-sidebar {
+    display: initial;
+  }
+
+  #sidebar.collapsed .user-sidebar-info {
+    justify-content: flex-start;
+    padding: 16px 20px;
+  }
+
+  #sidebar.collapsed .user-sidebar-info img {
+    width: 48px;
+    height: 48px;
+  }
+
   #main-content {
-    margin-right: 0;
+    margin-right: 0 !important;
     padding-top: 72px;
+  }
+
+  #sidebar.collapsed ~ #main-content {
+    margin-right: 0 !important;
   }
 
   .notification-panel {
     width: calc(100vw - 40px);
-    left: -120px;
+    left: -50px;
   }
 
   .top-header {

@@ -584,8 +584,14 @@ function setupEventDelegation() {
   if (sidebarToggle) {
     sidebarToggle.addEventListener("click", () => {
       const sidebar = document.getElementById("sidebar");
-      isSidebarCollapsed = !isSidebarCollapsed;
-      sidebar.classList.toggle("collapsed", isSidebarCollapsed);
+      if (window.innerWidth <= 768) {
+        // Mobile: toggle open/close (mobile-open class)
+        toggleMobileSidebar();
+      } else {
+        // Desktop: toggle collapsed width
+        isSidebarCollapsed = !isSidebarCollapsed;
+        sidebar.classList.toggle("collapsed", isSidebarCollapsed);
+      }
     });
   }
 

@@ -2,7 +2,7 @@
 const dictionary = {
   ar: {
     "app.title": "شجره المهارات",
-    loading: "جاري فتح البوابة...",
+    loading: "loading",
     "auth.pleaseLogin": "يجب تسجيل الدخول للدخول إلى الدنجن",
     "auth.login": "تسجيل الدخول",
     "auth.logout": "خروج",
@@ -146,7 +146,7 @@ const dictionary = {
   },
   en: {
     "app.title": "Skill Tree",
-    loading: "Opening the gate...",
+    loading: "loading",
     "auth.pleaseLogin": "You must login to enter the dungeon",
     "auth.login": "Login",
     "auth.logout": "Logout",
