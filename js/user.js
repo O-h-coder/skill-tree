@@ -766,47 +766,41 @@ export async function handleAvatarChange(e) {
 }
 
 // ===== Recovery (Export / Import) =====
+// Exports ONLY: skill names/descriptions/xp + quest titles/descriptions/xp
+// No IDs, no user data, no stats, no activity log. Clean list for AI sharing.
 export async function exportUserData() {
   const supabase = getSupabase();
   const user = await getCurrentUser();
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
-  // Fetch all user data
-  const [
-    { data: skills },
-    { data: quests },
-    { data: activity },
-    { data: stats },
-  ] = await Promise.all([
+  const [{ data: skills }, { data: quests }] = await Promise.all([
     supabase
       .from("skills")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
+      .select("name,description,icon,xp_reward")
+      .eq("user_id", user.id),
     supabase
       .from("quests")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("activity_history")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
-    supabase.from("user_stats").select("*").eq("user_id", user.id).single(),
+      .select("title,description,xp_reward")
+      .eq("user_id", user.id),
   ]);
 
+  if ((!skills || skills.length === 0) && (!quests || quests.length === 0)) {
+    notify(t("recovery.noData"), "info");
+    return { error: new Error("No data") };
+  }
+
   const exportPayload = {
-    version: "1.0",
-    exportDate: new Date().toISOString(),
-    userId: user.id,
-    username: user.user_metadata?.username || user.email,
-    data: {
-      skills: skills || [],
-      quests: quests || [],
-      activity: activity || [],
-      stats: stats || null,
-    },
+    skills: (skills || []).map((s) => ({
+      name: s.name,
+      description: s.description || "",
+      icon: s.icon || "fa-star",
+      xp_reward: s.xp_reward || 25,
+    })),
+    quests: (quests || []).map((q) => ({
+      title: q.title,
+      description: q.description || "",
+      xp_reward: q.xp_reward || 10,
+    })),
   };
 
   const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
@@ -815,7 +809,7 @@ export async function exportUserData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `skilltree_backup_${user.id.slice(0, 8)}_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `skilltree_list_${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -831,89 +825,80 @@ export async function importUserData(file) {
   if (!supabase || !user) return { error: new Error("Not authenticated") };
 
   if (!file || file.size === 0) return { error: new Error("No file selected") };
-  if (!file.name.endsWith(".json"))
-    return { error: new Error("Invalid file type") };
+  if (!file.name.endsWith(".json")) {
+    notify(t("recovery.invalidFile"), "error");
+    return { error: new Error("Invalid file") };
+  }
 
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const payload = JSON.parse(e.target.result);
-        const data = payload.data || payload;
+        const now = new Date().toISOString();
+        let importedCount = 0;
 
-        // Import skills (without id, with new user_id)
         if (
-          data.skills &&
-          Array.isArray(data.skills) &&
-          data.skills.length > 0
+          payload.skills &&
+          Array.isArray(payload.skills) &&
+          payload.skills.length > 0
         ) {
-          const skillsToInsert = data.skills.map((s) => ({
-            user_id: user.id,
-            name: s.name,
-            description: s.description || "",
-            icon: s.icon || "fa-star",
-            color: s.color || null,
-            xp_reward: s.xp_reward || 25,
-            completed: s.completed || false,
-            created_at: new Date().toISOString(),
-          }));
-          const { error: skillsError } = await supabase
-            .from("skills")
-            .insert(skillsToInsert);
-          if (skillsError) console.error("Import skills error:", skillsError);
+          const skillsToInsert = payload.skills
+            .map((s) => ({
+              user_id: user.id,
+              name: s.name?.trim(),
+              description: (s.description || "").trim(),
+              icon: s.icon || "fa-star",
+              color: null,
+              xp_reward: parseInt(s.xp_reward) || 25,
+              completed: false,
+              created_at: now,
+            }))
+            .filter((s) => s.name);
+          if (skillsToInsert.length > 0) {
+            const { error: skillsError } = await supabase
+              .from("skills")
+              .insert(skillsToInsert);
+            if (skillsError) console.error("Import skills error:", skillsError);
+            else importedCount += skillsToInsert.length;
+          }
         }
 
-        // Import quests (without id, with new user_id)
         if (
-          data.quests &&
-          Array.isArray(data.quests) &&
-          data.quests.length > 0
+          payload.quests &&
+          Array.isArray(payload.quests) &&
+          payload.quests.length > 0
         ) {
-          const questsToInsert = data.quests.map((q) => ({
-            user_id: user.id,
-            title: q.title,
-            description: q.description || "",
-            xp_reward: q.xp_reward || 10,
-            completed: q.completed || false,
-            created_at: new Date().toISOString(),
-          }));
-          const { error: questsError } = await supabase
-            .from("quests")
-            .insert(questsToInsert);
-          if (questsError) console.error("Import quests error:", questsError);
+          const questsToInsert = payload.quests
+            .map((q) => ({
+              user_id: user.id,
+              title: q.title?.trim(),
+              description: (q.description || "").trim(),
+              xp_reward: parseInt(q.xp_reward) || 10,
+              completed: false,
+              created_at: now,
+            }))
+            .filter((q) => q.title);
+          if (questsToInsert.length > 0) {
+            const { error: questsError } = await supabase
+              .from("quests")
+              .insert(questsToInsert);
+            if (questsError) console.error("Import quests error:", questsError);
+            else importedCount += questsToInsert.length;
+          }
         }
 
-        // Import activity log (optional)
-        if (
-          data.activity &&
-          Array.isArray(data.activity) &&
-          data.activity.length > 0
-        ) {
-          const activityToInsert = data.activity.map((a) => ({
-            user_id: user.id,
-            action_type: a.action_type,
-            item_type: a.item_type,
-            item_id: a.item_id,
-            title: a.title,
-            description: a.description,
-            created_at: new Date().toISOString(),
-          }));
-          const { error: activityError } = await supabase
-            .from("activity_history")
-            .insert(activityToInsert);
-          if (activityError)
-            console.error("Import activity error:", activityError);
-        }
-
-        // Refresh profile items
         await loadProfileSkills();
         await renderProfileSkills();
         await loadProfileQuests();
         await renderProfileQuests();
-        await renderActivityLog();
 
-        notify(t("recovery.importSuccess"), "success");
-        resolve({ data: true, error: null });
+        if (importedCount > 0) {
+          notify(t("recovery.importSuccess"), "success");
+        } else {
+          notify(t("recovery.noData"), "info");
+        }
+        resolve({ data: importedCount, error: null });
       } catch (err) {
         console.error("Import parse error:", err);
         notify(t("recovery.importError"), "error");

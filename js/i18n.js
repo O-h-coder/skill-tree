@@ -145,10 +145,11 @@ const dictionary = {
     "recovery.title": "الاسترداد",
     "recovery.exportLabel": "تصدير البيانات",
     "recovery.exportDesc":
-      "حمّل ملف JSON يحتوي على كل مهاراتك ومهامك وسجل النشاط",
+      "حمّل ملف JSON بأسماء مهاراتك ومهامك ووصفها ونقاط XP",
     "recovery.exportBtn": "تصدير",
     "recovery.importLabel": "استيراد البيانات",
-    "recovery.importDesc": "ارفع ملف JSON سابق لتسترجع مهاراتك ومهامك",
+    "recovery.importDesc":
+      "ارفع ملف JSON يحتوي على قائمة مهارات ومهام لإضافتها",
     "recovery.importBtn": "استيراد",
     "recovery.exportSuccess": "تم تصدير البيانات بنجاح",
     "recovery.importSuccess": "تم استيراد البيانات بنجاح",
@@ -306,11 +307,11 @@ const dictionary = {
     "recovery.title": "Recovery",
     "recovery.exportLabel": "Export Data",
     "recovery.exportDesc":
-      "Download a JSON file with all your skills, quests, and activity log",
+      "Download a JSON file with your skill/quest names, descriptions, and XP",
     "recovery.exportBtn": "Export",
     "recovery.importLabel": "Import Data",
     "recovery.importDesc":
-      "Upload a previous JSON file to restore your skills and quests",
+      "Upload a JSON file with a list of skills and quests to add them",
     "recovery.importBtn": "Import",
     "recovery.exportSuccess": "Data exported successfully",
     "recovery.importSuccess": "Data imported successfully",
