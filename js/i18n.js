@@ -142,6 +142,19 @@ const dictionary = {
     "onboarding.helpSection": "المساعدة",
     "onboarding.guideBtn": "الدليل التفاعلي",
     "onboarding.resetGuide": "إعادة ضبط الدليل",
+    "recovery.title": "الاسترداد",
+    "recovery.exportLabel": "تصدير البيانات",
+    "recovery.exportDesc":
+      "حمّل ملف JSON يحتوي على كل مهاراتك ومهامك وسجل النشاط",
+    "recovery.exportBtn": "تصدير",
+    "recovery.importLabel": "استيراد البيانات",
+    "recovery.importDesc": "ارفع ملف JSON سابق لتسترجع مهاراتك ومهامك",
+    "recovery.importBtn": "استيراد",
+    "recovery.exportSuccess": "تم تصدير البيانات بنجاح",
+    "recovery.importSuccess": "تم استيراد البيانات بنجاح",
+    "recovery.importError": "فشل استيراد البيانات. تأكد من صحة الملف",
+    "recovery.invalidFile": "الملف غير صالح. يجب أن يكون ملف JSON",
+    "recovery.noData": "لا توجد بيانات للتصدير",
     "onboarding.resetSuccess": "تم إعادة ضبط الدليل",
   },
   en: {
@@ -290,6 +303,21 @@ const dictionary = {
     "onboarding.helpSection": "Help",
     "onboarding.guideBtn": "Interactive Guide",
     "onboarding.resetGuide": "Reset Guide",
+    "recovery.title": "Recovery",
+    "recovery.exportLabel": "Export Data",
+    "recovery.exportDesc":
+      "Download a JSON file with all your skills, quests, and activity log",
+    "recovery.exportBtn": "Export",
+    "recovery.importLabel": "Import Data",
+    "recovery.importDesc":
+      "Upload a previous JSON file to restore your skills and quests",
+    "recovery.importBtn": "Import",
+    "recovery.exportSuccess": "Data exported successfully",
+    "recovery.importSuccess": "Data imported successfully",
+    "recovery.importError":
+      "Failed to import data. Make sure the file is valid",
+    "recovery.invalidFile": "Invalid file. Must be a JSON file",
+    "recovery.noData": "No data to export",
     "onboarding.resetSuccess": "Guide reset successfully",
   },
 };

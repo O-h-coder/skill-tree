@@ -303,3 +303,62 @@
   background: rgba(99, 102, 241, 0.1);
   box-shadow: 0 0 10px var(--primary-glow);
 }
+
+/* ===== Recovery Zone ===== */
+.recovery-zone {
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.recovery-zone .settings-card-header .settings-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.recovery-zone h3 {
+  color: #34d399;
+}
+
+.recovery-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recovery-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.recovery-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.recovery-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-recovery {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-recovery:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+.btn-outline-recovery {
+  background: transparent;
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.btn-outline-recovery:hover {
+  background: rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}

@@ -29,7 +29,6 @@
     />
     <script src="js/supabase.min.js"></script>
     <base target="_blank" />
-    <base target="_blank" />
   </head>
   <body>
     <!-- Toast Notifications -->
@@ -649,6 +648,58 @@
                 </div>
               </div>
 
+              <div class="settings-card recovery-zone">
+                <div class="settings-card-header">
+                  <div class="settings-icon">
+                    <i class="fas fa-file-export"></i>
+                  </div>
+                  <h3 data-i18n="recovery.title">الاسترداد</h3>
+                </div>
+                <div class="setting-row">
+                  <div class="recovery-info">
+                    <span
+                      class="recovery-label"
+                      data-i18n="recovery.exportLabel"
+                      >تصدير البيانات</span
+                    >
+                    <span class="recovery-desc" data-i18n="recovery.exportDesc"
+                      >حمّل ملف JSON يحتوي على كل مهاراتك ومهامك وسجل
+                      النشاط</span
+                    >
+                  </div>
+                  <button class="btn btn-recovery" data-action="exportData">
+                    <i class="fas fa-download"></i>
+                    <span data-i18n="recovery.exportBtn">تصدير</span>
+                  </button>
+                </div>
+                <div class="setting-row">
+                  <div class="recovery-info">
+                    <span
+                      class="recovery-label"
+                      data-i18n="recovery.importLabel"
+                      >استيراد البيانات</span
+                    >
+                    <span class="recovery-desc" data-i18n="recovery.importDesc"
+                      >ارفع ملف JSON سابق لتسترجع مهاراتك ومهامك</span
+                    >
+                  </div>
+                  <div class="recovery-actions">
+                    <input
+                      type="file"
+                      id="recovery-file-input"
+                      accept=".json"
+                      class="hidden"
+                    />
+                    <button
+                      class="btn btn-outline-recovery"
+                      data-action="importData"
+                    >
+                      <i class="fas fa-upload"></i>
+                      <span data-i18n="recovery.importBtn">استيراد</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div class="settings-card danger-zone">
                 <div class="settings-card-header">
                   <div class="settings-icon">

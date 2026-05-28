@@ -37,6 +37,8 @@ import {
   updateStats,
   closeModal,
   resetUserData,
+  exportUserData,
+  importUserData,
 } from "./user.js";
 import {
   loadFriends,
@@ -574,6 +576,18 @@ function setupEventDelegation() {
         }
         break;
 
+      case "exportData":
+        showLoading(true);
+        await exportUserData();
+        showLoading(false);
+        break;
+
+      case "importData": {
+        const fileInput = document.getElementById("recovery-file-input");
+        if (fileInput) fileInput.click();
+        break;
+      }
+
       case "closeModal":
         closeAllModals();
         break;
@@ -601,6 +615,24 @@ function setupEventDelegation() {
       showLoading(true);
       await handleAvatarChange(e);
       showLoading(false);
+    });
+  }
+
+  // Recovery file input listener
+  const recoveryFileInput = document.getElementById("recovery-file-input");
+  if (recoveryFileInput) {
+    recoveryFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.name.endsWith(".json")) {
+        notify(t("recovery.invalidFile"), "error");
+        recoveryFileInput.value = "";
+        return;
+      }
+      showLoading(true);
+      await importUserData(file);
+      showLoading(false);
+      recoveryFileInput.value = "";
     });
   }
 
